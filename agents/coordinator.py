@@ -43,18 +43,23 @@ def post_kickoff(transcript: dict, meeting_id: str) -> str:
     _, api_key = load_extractor_credentials()
     preview = transcript.get("text", "")[:1200]
     message = (
-        f"@Extractor Process this meeting transcript for TalkTrace (meeting: {meeting_id}).\n\n"
-        f"```json\n{json.dumps({'transcript': transcript, 'meetingId': meeting_id}, indent=2)[:8000]}\n```\n\n"
+        f"@hmorder/graphagent Process this SideQuest conversation (id: {meeting_id}).\n\n"
+        f"```json\n{json.dumps({'conversation': transcript, 'meetingId': meeting_id}, indent=2)[:8000]}\n```\n\n"
         f"Preview:\n{preview}"
     )
 
-    payload = json.dumps({"content": message}).encode("utf-8")
+    payload = json.dumps({
+        "message": {
+            "content": f"@hmorder/extractor {message}",
+            "mentions": [{"handle": "hmorder/extractor"}],
+        }
+    }).encode("utf-8")
     request = urllib.request.Request(
         f"{BAND_API_BASE}/chats/{chat_id}/messages",
         data=payload,
         headers={
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {api_key}",
+            "X-API-Key": api_key,
         },
         method="POST",
     )

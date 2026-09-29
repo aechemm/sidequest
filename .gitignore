@@ -37,6 +37,9 @@ yarn-error.log*
 # agent tool cache
 /agent-tools/
 
+# secrets
+agents/agent_config.yaml
+
 # vercel
 .vercel
 
