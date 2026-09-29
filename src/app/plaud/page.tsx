@@ -63,18 +63,27 @@ export default async function PlaudPage() {
               <p className="mt-1 text-muted-foreground">
                 In the Cursor cloud agent <strong>Desktop</strong> terminal:
               </p>
-              <pre className="mt-2 overflow-x-auto rounded bg-background/60 p-2 font-mono text-xs">
+              <div className="rounded-lg bg-background/60 p-3 text-sm text-muted-foreground space-y-2">
+                <p>
+                  <strong className="text-foreground">Important:</strong> Authorizing Plaud in
+                  ChatGPT / Cursor MCP settings is <em>not</em> the same as logging the CLI into
+                  this cloud machine. SideQuest Sync needs CLI login here.
+                </p>
+                <p className="font-medium text-foreground">Do this in Cursor Desktop → Terminal:</p>
+                <pre className="overflow-x-auto rounded bg-black/40 p-2 font-mono text-xs text-foreground">
 {`cd /workspace
 npm run plaud:login`}
-              </pre>
-              <p className="mt-2 text-muted-foreground">
-                Use <code className="font-mono">npm run plaud:login</code> — not bare{" "}
-                <code className="font-mono">npx plaud login</code>. Our Embedded API{" "}
-                <code className="font-mono">PLAUD_CLIENT_ID</code> breaks CLI OAuth (404 after
-                Google login). Sign in with the{" "}
-                <strong className="text-foreground">same Plaud account</strong> the demo device
-                uses, then press Sync Plaud.
-              </p>
+                </pre>
+                <p>
+                  When the browser opens, finish Google/Plaud login. If you see a 404, you used
+                  the wrong command earlier — use <code className="font-mono">npm run plaud:login</code>{" "}
+                  only.
+                </p>
+                <p>
+                  Then run <code className="font-mono">npm run plaud:me</code>. If it shows your
+                  name, come back here and press <strong className="text-foreground">Sync Plaud</strong>.
+                </p>
+              </div>
             </div>
           )}
         </CardContent>
