@@ -11,5 +11,16 @@ unset PLAUD_CLIENT_ID
 unset PLAUD_API_KEY
 unset PLAUD_CLIENT_SECRET
 
+echo "Freeing port 8199 if a previous login is stuck..."
+if command -v fuser >/dev/null 2>&1; then
+  fuser -k 8199/tcp >/dev/null 2>&1 || true
+fi
+# Also kill any leftover oauth server from this repo
+pkill -f "node scripts/plaud-oauth-server.mjs" >/dev/null 2>&1 || true
+sleep 1
+
 echo "Starting reliable Plaud OAuth listener..."
+echo "If Authorize ends on localhost error, paste the callback URL at:"
+echo "  https://stockholm-blocked-jumping-kit.trycloudflare.com/plaud/finish-login"
+echo
 exec node scripts/plaud-oauth-server.mjs

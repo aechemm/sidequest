@@ -161,8 +161,23 @@ server.listen(PORT, "127.0.0.1", () => {
   console.log("");
   console.log("If the browser says 'localhost refused to connect':");
   console.log("  - Copy the FULL address bar URL (includes ?code=...)");
-  console.log("  - Open http://127.0.0.1:4318/plaud/finish-login");
+  console.log("  - Open this page (public tunnel — use this one):");
+  console.log(
+    "    https://stockholm-blocked-jumping-kit.trycloudflare.com/plaud/finish-login",
+  );
   console.log("  - Paste the URL and submit");
   console.log("============================================================");
   console.log("");
+});
+
+server.on("error", (err) => {
+  if (err && err.code === "EADDRINUSE") {
+    console.error("");
+    console.error("Port 8199 is busy. Run this once, then retry:");
+    console.error("  fuser -k 8199/tcp");
+    console.error("  npm run plaud:login");
+    console.error("");
+    process.exit(1);
+  }
+  throw err;
 });
