@@ -21,6 +21,14 @@ interface PipelineStatusCardProps {
 
 export function PipelineStatusCard({ status }: PipelineStatusCardProps) {
   if (!status) return null;
+  // Don't show a finished "nothing found" bar on an otherwise empty dashboard.
+  if (
+    status.stage === "complete" &&
+    (status.sideQuestsFound ?? 0) === 0 &&
+    !status.entitiesExtracted
+  ) {
+    return null;
+  }
 
   const progress = STAGE_PROGRESS[status.stage] ?? 0;
   const variant =
