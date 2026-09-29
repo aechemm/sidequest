@@ -40,6 +40,9 @@ yarn-error.log*
 # secrets
 agents/agent_config.yaml
 
+# local Plaud sync state
+/data/
+
 # vercel
 .vercel
 

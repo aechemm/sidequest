@@ -42,7 +42,7 @@ export function AppHeader({ services }: AppHeaderProps) {
           href="/plaud"
           className="inline-flex h-7 items-center rounded-lg bg-primary px-2.5 text-sm text-primary-foreground hover:bg-primary/80"
         >
-          Pair Plaud device
+          Sync Plaud
         </Link>
       </div>
     </header>
