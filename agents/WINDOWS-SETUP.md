@@ -43,10 +43,31 @@ Copy `.env` from project root (Crusoe + Neo4j keys) OR set env vars in each term
 
 ## 4. Install dependencies
 
+Use `py` if `pip` is not on PATH (common on Windows):
+
 ```cmd
 cd path\to\sidequest\agents
-pip install -r requirements.txt
+py -m pip install -r requirements.txt
 ```
+
+### SSL / certifi error?
+
+If you see `Could not find a suitable TLS CA certificate bundle` or a missing `cacert.pem`:
+
+**Quick fix — run the helper script:**
+```cmd
+cd path\to\sidequest\agents
+fix-pip-ssl.bat
+```
+
+**Or repair Python:** Start Menu → Python 3.14 → Modify → **Repair**
+
+**Or use Python 3.12** (most reliable for hackathons): https://www.python.org/downloads/release/python-3120/
+```cmd
+py -3.12 -m pip install -r requirements.txt
+```
+
+**Skip local agents entirely:** the cloud agent can run all five BAND agents for you — check the Band room for active agents.
 
 ## 5. Start all agents
 
