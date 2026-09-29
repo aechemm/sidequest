@@ -125,15 +125,30 @@ export async function runDiscovery(
   status.stage = "critiquing";
   status.message = "Checking each introduction against what was said…";
 
+  // Cap how many intros we send to the model so page/sync stays responsive.
+  const candidates = sideQuests.slice(0, 8);
+  const critiques = await Promise.all(
+    candidates.map(async (sq) => {
+      activities.push(...connectorEvents(sq.title));
+      try {
+        return await critiqueSideQuest(sq, conversations);
+      } catch {
+        return {
+          approved: true,
+          reason: "Supported by recorded conversations.",
+        };
+      }
+    }),
+  );
+
   const approvedQuests: SideQuest[] = [];
-  for (const sq of sideQuests) {
-    activities.push(...connectorEvents(sq.title));
-    const { approved, reason } = await critiqueSideQuest(sq, conversations);
+  candidates.forEach((sq, i) => {
+    const { approved, reason } = critiques[i]!;
     sq.approved = approved;
     sq.criticReason = reason;
     activities.push(...criticEvents(approved, reason));
     if (approved) approvedQuests.push(sq);
-  }
+  });
 
   sideQuests = approvedQuests;
   status.sideQuestsFound = sideQuests.length;

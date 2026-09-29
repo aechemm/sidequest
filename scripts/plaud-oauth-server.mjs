@@ -163,7 +163,7 @@ server.listen(PORT, "127.0.0.1", () => {
   console.log("  - Copy the FULL address bar URL (includes ?code=...)");
   console.log("  - Open this page (public tunnel — use this one):");
   console.log(
-    "    https://pulled-amended-heating-categories.trycloudflare.com/plaud/finish-login",
+    "    https://plenty-corporation-beings-accessing.trycloudflare.com/plaud/finish-login",
   );
   console.log("  - Paste the URL and submit");
   console.log("============================================================");

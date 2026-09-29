@@ -309,6 +309,14 @@ export async function syncPlaudAccount(): Promise<SyncResult> {
     m.loadStoredConversations(),
   );
   const discovery = await runDiscovery(stored.length > 0 ? stored : conversations);
+  const { saveDiscoveryCache } = await import("@/lib/discovery-cache");
+  await saveDiscoveryCache({
+    conversations: stored.length > 0 ? stored : conversations,
+    sideQuests: discovery.sideQuests,
+    activities: discovery.activities,
+    stats: discovery.stats,
+    status: discovery.status,
+  });
 
   events.push({
     stage: "complete",

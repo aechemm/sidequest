@@ -1,9 +1,12 @@
 import { loadStoredConversations } from "@/lib/conversation-store";
+import {
+  loadDiscoveryCache,
+  saveDiscoveryCache,
+} from "@/lib/discovery-cache";
 import { fetchGraph } from "@/lib/neo4j";
 import { computeStats, runDiscovery } from "@/lib/pipeline";
 import type {
   AgentActivityEvent,
-  Conversation,
   GraphData,
   NetworkStats,
   PipelineStatus,
@@ -11,7 +14,7 @@ import type {
 } from "@/lib/types";
 
 export interface AppState {
-  conversations: Conversation[];
+  conversations: Awaited<ReturnType<typeof loadStoredConversations>>;
   sideQuests: SideQuest[];
   graph: GraphData;
   activities: AgentActivityEvent[];
@@ -29,6 +32,9 @@ const EMPTY_STATS: NetworkStats = {
 };
 
 const EMPTY_GRAPH: GraphData = { nodes: [], links: [] };
+
+/** Prevent stampedes when many tabs hit a cold cache at once. */
+let discoveryInFlight: Promise<void> | null = null;
 
 export async function getAppState(): Promise<AppState> {
   const conversations = await loadStoredConversations();
@@ -65,20 +71,64 @@ export async function getAppState(): Promise<AppState> {
     };
   }
 
-  const discovery = await runDiscovery(conversations);
-  const sideQuests: SideQuest[] = discovery.sideQuests;
-  const activities: AgentActivityEvent[] = discovery.activities;
-  const status: PipelineStatus | null = discovery.status;
-  const stats: NetworkStats = discovery.stats;
-  if (discovery.graph.nodes.length > 0) graph = discovery.graph;
+  const cached = await loadDiscoveryCache(conversations);
+  if (cached) {
+    return {
+      conversations,
+      sideQuests: cached.sideQuests,
+      graph,
+      activities: cached.activities,
+      stats: {
+        ...cached.stats,
+        conversations: conversations.length,
+        people:
+          cached.stats.people ||
+          graph.nodes.filter((n) => n.type === "Person").length,
+        companies:
+          cached.stats.companies ||
+          graph.nodes.filter((n) => n.type === "Company").length,
+      },
+      status: cached.status,
+      services,
+      bandRoomUrl,
+    };
+  }
+
+  if (!discoveryInFlight) {
+    discoveryInFlight = (async () => {
+      try {
+        const discovery = await runDiscovery(conversations);
+        await saveDiscoveryCache({
+          conversations,
+          sideQuests: discovery.sideQuests,
+          activities: discovery.activities,
+          stats: discovery.stats,
+          status: discovery.status,
+        });
+      } finally {
+        discoveryInFlight = null;
+      }
+    })();
+  }
+
+  // Don't block the page on a multi-minute AI pass — show conversations now.
+  void discoveryInFlight;
 
   return {
     conversations,
-    sideQuests,
+    sideQuests: [],
     graph,
-    activities,
-    stats: stats ?? computeStats(conversations, graph, sideQuests),
-    status,
+    activities: [],
+    stats: {
+      ...EMPTY_STATS,
+      conversations: conversations.length,
+      people: graph.nodes.filter((n) => n.type === "Person").length,
+      companies: graph.nodes.filter((n) => n.type === "Company").length,
+    },
+    status: {
+      stage: "discovering",
+      message: "Looking for introductions in the background…",
+    },
     services,
     bandRoomUrl,
   };
