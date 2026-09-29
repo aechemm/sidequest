@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""SideQuest Critic — vetoes introductions not supported by recorded conversations."""
+"""SideQuest Scout — extracts people, problems, offers from conversations."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("critic")
+logger = logging.getLogger("scout")
 
 CRUSOE_BASE_URL = os.getenv("CRUSOE_BASE_URL", "https://api.inference.crusoecloud.com/v1/")
 CRUSOE_MODEL = os.getenv("CRUSOE_MODEL", "meta-llama/Llama-3.3-70B-Instruct")
@@ -29,14 +29,14 @@ def build_adapter():
             base_url=CRUSOE_BASE_URL,
         ),
         checkpointer=InMemorySaver(),
-        custom_section="""You are SideQuest Critic in a Band room.
+        custom_section="""You are SideQuest Scout in a Band room.
 
-When @mentioned by Connector with a proposed introduction:
-- Verify EVERY claim is supported by quotes from recorded conversations.
-- If not supported, reply BLOCKED and name missing evidence.
-- If supported, reply APPROVED — the SideQuest ships.
+When @mentioned with a conversation transcript:
+1. Extract people, skills, problems, products, needs, and offers.
+2. Each entity needs: person, relation (WORKS_ON/HAS_PROBLEM/SEEKS/PROVIDES/NEEDS), topic, quote.
+3. Post findings, then @mention @GraphAgent with the entities JSON.
 
-You can VETO. A BLOCKED intro does not ship until Connector revises.""",
+Do NOT find cross-conversation connections — that's Connector's job.""",
     )
 
 
@@ -44,9 +44,9 @@ async def main() -> None:
     from band import Agent
     from band.config import load_agent_config
 
-    agent_id, api_key = load_agent_config("critic")
+    agent_id, api_key = load_agent_config("scout")
     agent = Agent.create(adapter=build_adapter(), agent_id=agent_id, api_key=api_key)
-    logger.info("Critic running — ready to BLOCK unsupported intros")
+    logger.info("Scout running — listening for @mentions")
     await agent.run()
 
 

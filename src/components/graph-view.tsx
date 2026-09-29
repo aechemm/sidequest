@@ -10,11 +10,9 @@ const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), {
 
 const NODE_COLORS: Record<string, string> = {
   Person: "#3b82f6",
-  Decision: "#8b5cf6",
-  Task: "#22c55e",
-  Question: "#f59e0b",
-  Blocker: "#ef4444",
-  Meeting: "#64748b",
+  Topic: "#a855f7",
+  Conversation: "#64748b",
+  SideQuest: "#f59e0b",
 };
 
 interface GraphViewProps {
@@ -33,7 +31,7 @@ export function GraphView({ data }: GraphViewProps) {
   if (data.nodes.length === 0) {
     return (
       <div className="flex h-[420px] items-center justify-center rounded-xl border border-dashed bg-muted/30 text-sm text-muted-foreground">
-        No graph data yet — run the pipeline to populate Neo4j.
+        Graph empty — run the demo or upload conversations.
       </div>
     );
   }
@@ -44,13 +42,12 @@ export function GraphView({ data }: GraphViewProps) {
         graphData={graphData}
         nodeLabel={(node) => `${(node as { name?: string }).name ?? ""}`}
         nodeColor={(node) =>
-          NODE_COLORS[(node as { type?: string }).type ?? "Meeting"] ??
-          "#94a3b8"
+          NODE_COLORS[(node as { type?: string }).type ?? "Topic"] ?? "#94a3b8"
         }
         linkLabel={(link) => (link as { name?: string }).name ?? ""}
         linkColor={() => "#475569"}
         backgroundColor="#020617"
-        nodeRelSize={6}
+        nodeRelSize={7}
         linkDirectionalArrowLength={4}
         linkDirectionalArrowRelPos={1}
         cooldownTicks={80}

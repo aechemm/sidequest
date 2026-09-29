@@ -5,11 +5,12 @@ import type { PipelineStatus } from "@/lib/types";
 
 const STAGE_PROGRESS: Record<string, number> = {
   idle: 0,
-  uploading: 15,
-  transcribing: 30,
-  extracting: 50,
-  critiquing: 70,
-  building_graph: 90,
+  uploading: 10,
+  transcribing: 25,
+  extracting: 40,
+  building_graph: 55,
+  discovering: 75,
+  critiquing: 90,
   complete: 100,
   error: 100,
 };
@@ -38,24 +39,16 @@ export function PipelineStatusCard({ status }: PipelineStatusCardProps) {
       <CardContent className="space-y-3">
         <Progress value={progress} />
         <p className="text-sm text-muted-foreground">{status.message}</p>
-        {(status.factsExtracted !== undefined ||
-          status.factsApproved !== undefined) && (
-          <div className="flex gap-4 text-xs text-muted-foreground">
-            {status.factsExtracted !== undefined && (
-              <span>Extracted: {status.factsExtracted}</span>
-            )}
-            {status.factsApproved !== undefined && (
-              <span className="text-green-600">
-                Approved: {status.factsApproved}
-              </span>
-            )}
-            {status.factsBlocked !== undefined && (
-              <span className="text-red-600">
-                Blocked: {status.factsBlocked}
-              </span>
-            )}
-          </div>
-        )}
+        <div className="flex gap-4 text-xs text-muted-foreground">
+          {status.entitiesExtracted !== undefined && (
+            <span>Entities: {status.entitiesExtracted}</span>
+          )}
+          {status.sideQuestsFound !== undefined && (
+            <span className="font-medium text-amber-600">
+              SideQuests: {status.sideQuestsFound}
+            </span>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

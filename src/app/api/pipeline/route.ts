@@ -1,35 +1,49 @@
-import { runPipeline } from "@/lib/pipeline";
-import { SAMPLE_TRANSCRIPT } from "@/lib/sample-transcript";
-import type { Transcript } from "@/lib/types";
+import { ingestConversation, runDiscovery } from "@/lib/pipeline";
+import { DEMO_CONVERSATIONS } from "@/lib/sample-conversations";
+import type { Conversation } from "@/lib/types";
 
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as {
-      transcript?: Transcript;
-      meetingId?: string;
-      useMock?: boolean;
+      conversation?: Conversation;
+      conversations?: Conversation[];
+      action?: "ingest" | "discover" | "demo";
     };
 
-    const transcript =
-      body.transcript ?? (body.useMock ? SAMPLE_TRANSCRIPT : null);
-    if (!transcript) {
-      return Response.json({ error: "transcript required" }, { status: 400 });
+    if (body.action === "discover" || body.action === "demo") {
+      const conversations =
+        body.conversations ??
+        (body.action === "demo" ? DEMO_CONVERSATIONS : []);
+
+      if (conversations.length === 0) {
+        return Response.json(
+          { error: "conversations required for discovery" },
+          { status: 400 },
+        );
+      }
+
+      // Ingest all if demo
+      if (body.action === "demo") {
+        for (const conv of conversations) {
+          await ingestConversation(conv);
+        }
+      }
+
+      const result = await runDiscovery(conversations);
+      return Response.json(result);
     }
 
-    const meetingId = body.meetingId ?? transcript.id;
-    const result = await runPipeline(transcript, meetingId);
+    const conversation = body.conversation;
+    if (!conversation) {
+      return Response.json({ error: "conversation required" }, { status: 400 });
+    }
 
+    const result = await ingestConversation(conversation);
     return Response.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Pipeline failed";
     return Response.json(
-      {
-        error: message,
-        status: {
-          stage: "error",
-          message,
-        },
-      },
+      { error: message, status: { stage: "error", message } },
       { status: 500 },
     );
   }

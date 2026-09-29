@@ -85,6 +85,7 @@ export async function pollPlaudTranscription(
     status: data.status,
     transcript: {
       id: transcriptionId,
+      title: `Conversation ${transcriptionId.slice(0, 8)}`,
       text: data.data.text,
       language: data.data.language,
       duration: data.data.duration,

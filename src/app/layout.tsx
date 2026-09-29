@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TalkTrace — Meeting Memory Graph",
+  title: "SideQuest — Discover who should meet",
   description:
-    "Turn Plaud recordings into a Neo4j knowledge graph with Crusoe-powered agents coordinated in BAND.",
+    "Plaud hears conversations. SideQuest discovers cross-conversation connections with Crusoe, Neo4j, and BAND agents.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

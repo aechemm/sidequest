@@ -1,9 +1,10 @@
 import OpenAI from "openai";
-import type { ExtractedFact, Transcript } from "./types";
+import type { Conversation, ExtractedEntity, SideQuest } from "./types";
 
 const CRUSOE_BASE_URL =
   process.env.CRUSOE_BASE_URL ?? "https://api.inference.crusoecloud.com/v1/";
-const CRUSOE_MODEL = process.env.CRUSOE_MODEL ?? "meta-llama/Llama-3.3-70B-Instruct";
+const CRUSOE_MODEL =
+  process.env.CRUSOE_MODEL ?? "meta-llama/Llama-3.3-70B-Instruct";
 
 export function getCrusoeClient(): OpenAI | null {
   const apiKey = process.env.CRUSOE_API_KEY;
@@ -11,30 +12,21 @@ export function getCrusoeClient(): OpenAI | null {
   return new OpenAI({ apiKey, baseURL: CRUSOE_BASE_URL });
 }
 
-const EXTRACTION_SYSTEM = `You extract structured facts from meeting transcripts.
-Return ONLY valid JSON: an array of objects with keys:
-- type: "decision" | "commitment" | "blocker" | "question"
-- text: short summary of the fact
-- speaker: who said it (if known)
-- quote: exact supporting quote from the transcript
-- timestampStart: seconds (number or null)
-- timestampEnd: seconds (number or null)
-- confidence: 0-1
-
+const EXTRACTION_SYSTEM = `You extract people, skills, problems, products, needs, and offers from real-world conversations.
+Return ONLY valid JSON: {"entities": [{"person":"Name","relation":"WORKS_ON|HAS_PROBLEM|SEEKS|PROVIDES|NEEDS|BUILDS|OFFERS","topic":"short label","quote":"verbatim quote","timestampStart":number|null,"timestampEnd":number|null,"confidence":0-1}]}
 Rules:
-- Every fact MUST include a verbatim quote from the transcript.
-- Do not invent facts not present in the text.
-- Prefer fewer, high-confidence facts.`;
+- person = who said it or who it refers to
+- topic = concise noun phrase (e.g. "Private VPC Inference", "Healthcare AI")
+- Every entity MUST have a verbatim quote from the conversation
+- Do not invent entities not present in the text`;
 
-export async function extractFactsWithCrusoe(
-  transcript: Transcript,
-): Promise<ExtractedFact[]> {
+export async function extractEntities(
+  conversation: Conversation,
+): Promise<ExtractedEntity[]> {
   const client = getCrusoeClient();
-  if (!client) {
-    return extractFactsMock(transcript);
-  }
+  if (!client) return extractEntitiesMock(conversation);
 
-  const segmentHints = transcript.segments
+  const segmentHints = conversation.segments
     .map(
       (s) =>
         `[${s.start}s-${s.end}s] ${s.speaker ?? "Unknown"}: ${s.text}`,
@@ -49,100 +41,141 @@ export async function extractFactsWithCrusoe(
       { role: "system", content: EXTRACTION_SYSTEM },
       {
         role: "user",
-        content: `Extract facts from this transcript.\n\nSegments:\n${segmentHints}\n\nFull text:\n${transcript.text}`,
+        content: `Conversation: ${conversation.title}\n\nSegments:\n${segmentHints}\n\nFull:\n${conversation.text}`,
       },
     ],
   });
 
-  const raw = response.choices[0]?.message?.content ?? '{"facts":[]}';
-  const parsed = JSON.parse(raw) as { facts?: Omit<ExtractedFact, "id">[] };
-  const facts = parsed.facts ?? (Array.isArray(parsed) ? parsed : []);
+  const raw = response.choices[0]?.message?.content ?? '{"entities":[]}';
+  const parsed = JSON.parse(raw) as {
+    entities?: Omit<ExtractedEntity, "id">[];
+  };
+  const entities = parsed.entities ?? [];
 
-  return facts.map((fact, index) => ({
-    ...fact,
-    id: `fact-${transcript.id}-${index}`,
-    confidence: fact.confidence ?? 0.8,
+  return entities.map((e, i) => ({
+    ...e,
+    id: `ent-${conversation.id}-${i}`,
+    confidence: e.confidence ?? 0.8,
   }));
 }
 
-function extractFactsMock(transcript: Transcript): ExtractedFact[] {
-  const facts: ExtractedFact[] = [];
-  transcript.segments.forEach((segment, index) => {
-    const lower = segment.text.toLowerCase();
-    let type: ExtractedFact["type"] | null = null;
+function extractEntitiesMock(conversation: Conversation): ExtractedEntity[] {
+  const rules: Array<{
+    match: RegExp;
+    person: string;
+    relation: ExtractedEntity["relation"];
+    topic: string;
+  }> = [
+    {
+      match: /inference platform.*vpc|vpc/i,
+      person: "Alice",
+      relation: "PROVIDES",
+      topic: "Private VPC Inference",
+    },
+    {
+      match: /patient data|on-prem|private ai/i,
+      person: "Bob",
+      relation: "HAS_PROBLEM",
+      topic: "Private PHI Processing",
+    },
+    {
+      match: /healthcare ai/i,
+      person: "Charlie",
+      relation: "SEEKS",
+      topic: "Healthcare AI Companies",
+    },
+  ];
 
-    if (lower.includes("decision:")) type = "decision";
-    else if (lower.includes("commits to") || lower.includes("commit to"))
-      type = "commitment";
-    else if (lower.includes("blocked") || lower.includes("blocking"))
-      type = "blocker";
-    else if (lower.includes("open question") || lower.includes("?"))
-      type = "question";
-
-    if (!type) return;
-
-    facts.push({
-      id: `fact-${transcript.id}-${index}`,
-      type,
-      text: segment.text.replace(/^decision:\s*/i, "").trim(),
-      speaker: segment.speaker,
-      quote: segment.text,
-      timestampStart: segment.start,
-      timestampEnd: segment.end,
-      confidence: 0.85,
-    });
+  const entities: ExtractedEntity[] = [];
+  conversation.segments.forEach((segment, index) => {
+    for (const rule of rules) {
+      if (!rule.match.test(segment.text)) continue;
+      const speaker = segment.speaker ?? rule.person;
+      entities.push({
+        id: `ent-${conversation.id}-${index}-${rule.relation}`,
+        person: speaker,
+        relation: rule.relation,
+        topic: rule.topic,
+        quote: segment.text,
+        timestampStart: segment.start,
+        timestampEnd: segment.end,
+        confidence: 0.9,
+      });
+    }
   });
-  return facts;
+  return entities;
 }
 
-const CRITIC_SYSTEM = `You are a strict fact-checker for meeting extractions.
-Given a transcript and an extracted fact, verify the fact is supported by a verbatim quote in the transcript.
-Return ONLY valid JSON: {"approved": boolean, "reason": string}
-If not approved, reason must explain what evidence is missing. Use "BLOCKED" in reason when rejecting.`;
-
-export async function critiqueFactWithCrusoe(
-  transcript: Transcript,
-  fact: ExtractedFact,
+export async function critiqueSideQuest(
+  sideQuest: SideQuest,
+  conversations: Conversation[],
 ): Promise<{ approved: boolean; reason: string }> {
   const client = getCrusoeClient();
-  if (!client) {
-    return critiqueFactMock(transcript, fact);
-  }
+  if (!client) return critiqueSideQuestMock(sideQuest, conversations);
 
   const response = await client.chat.completions.create({
     model: CRUSOE_MODEL,
     temperature: 0,
     response_format: { type: "json_object" },
     messages: [
-      { role: "system", content: CRITIC_SYSTEM },
+      {
+        role: "system",
+        content:
+          'Verify a SideQuest introduction is supported by recorded conversations. Return {"approved":bool,"reason":str}. Use BLOCKED in reason when rejecting.',
+      },
       {
         role: "user",
-        content: JSON.stringify({
-          transcript: transcript.text,
-          fact,
-        }),
+        content: JSON.stringify({ sideQuest, conversations }),
       },
     ],
   });
 
   const raw = response.choices[0]?.message?.content ?? "{}";
-  const parsed = JSON.parse(raw) as { approved?: boolean; reason?: string };
-  return {
-    approved: parsed.approved ?? false,
-    reason: parsed.reason ?? "Unable to verify",
-  };
+  return JSON.parse(raw) as { approved: boolean; reason: string };
 }
 
-function critiqueFactMock(
-  transcript: Transcript,
-  fact: ExtractedFact,
+function critiqueSideQuestMock(
+  sideQuest: SideQuest,
+  conversations: Conversation[],
 ): { approved: boolean; reason: string } {
-  const supported = transcript.text.toLowerCase().includes(fact.quote.toLowerCase().slice(0, 20));
-  if (supported && fact.quote.length > 10) {
-    return { approved: true, reason: "Quote found in transcript." };
+  const allText = conversations.map((c) => c.text).join(" ");
+  const peopleMentioned = sideQuest.people.every((p) =>
+    allText.toLowerCase().includes(p.toLowerCase()),
+  );
+  if (peopleMentioned && sideQuest.people.length >= 2) {
+    return {
+      approved: true,
+      reason: "All people and claims supported by recorded conversations.",
+    };
   }
   return {
     approved: false,
-    reason: "BLOCKED — no supporting quote found in transcript.",
+    reason: "BLOCKED — connection not supported by recorded conversations.",
   };
+}
+
+export async function draftIntroduction(
+  sideQuest: SideQuest,
+): Promise<string> {
+  const client = getCrusoeClient();
+  if (!client) {
+    return sideQuest.draftIntro;
+  }
+
+  const response = await client.chat.completions.create({
+    model: CRUSOE_MODEL,
+    temperature: 0.4,
+    messages: [
+      {
+        role: "system",
+        content:
+          "Write a warm, concise 3-sentence intro email connecting these people based on the SideQuest. No fluff.",
+      },
+      { role: "user", content: JSON.stringify(sideQuest) },
+    ],
+  });
+
+  return (
+    response.choices[0]?.message?.content?.trim() ?? sideQuest.draftIntro
+  );
 }

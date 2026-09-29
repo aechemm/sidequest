@@ -1,5 +1,5 @@
-import { TalkTraceApp } from "@/components/talktrace-app";
+import { SideQuestApp } from "@/components/sidequest-app";
 
 export default function Home() {
-  return <TalkTraceApp />;
+  return <SideQuestApp />;
 }

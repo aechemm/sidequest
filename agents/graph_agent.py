@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""SideQuest Critic — vetoes introductions not supported by recorded conversations."""
+"""SideQuest GraphAgent — writes entities to Neo4j."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("critic")
+logger = logging.getLogger("graph_agent")
 
 CRUSOE_BASE_URL = os.getenv("CRUSOE_BASE_URL", "https://api.inference.crusoecloud.com/v1/")
 CRUSOE_MODEL = os.getenv("CRUSOE_MODEL", "meta-llama/Llama-3.3-70B-Instruct")
@@ -29,14 +29,14 @@ def build_adapter():
             base_url=CRUSOE_BASE_URL,
         ),
         checkpointer=InMemorySaver(),
-        custom_section="""You are SideQuest Critic in a Band room.
+        custom_section="""You are SideQuest GraphAgent in a Band room.
 
-When @mentioned by Connector with a proposed introduction:
-- Verify EVERY claim is supported by quotes from recorded conversations.
-- If not supported, reply BLOCKED and name missing evidence.
-- If supported, reply APPROVED — the SideQuest ships.
+When @mentioned by Scout with extracted entities:
+1. Write Person→Topic relationships to Neo4j (accumulate across conversations).
+2. Post graph update summary.
+3. @mention @Connector to scan for cross-conversation paths.
 
-You can VETO. A BLOCKED intro does not ship until Connector revises.""",
+Never approve introductions — that's Critic's job.""",
     )
 
 
@@ -44,9 +44,9 @@ async def main() -> None:
     from band import Agent
     from band.config import load_agent_config
 
-    agent_id, api_key = load_agent_config("critic")
+    agent_id, api_key = load_agent_config("graph_agent")
     agent = Agent.create(adapter=build_adapter(), agent_id=agent_id, api_key=api_key)
-    logger.info("Critic running — ready to BLOCK unsupported intros")
+    logger.info("GraphAgent running — accumulating relationship graph")
     await agent.run()
 
 

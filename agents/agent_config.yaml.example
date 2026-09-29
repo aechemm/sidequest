@@ -1,10 +1,14 @@
-extractor:
-  agent_id: "your-extractor-uuid"
-  api_key: "your-extractor-band-api-key"
+scout:
+  agent_id: "your-scout-uuid"
+  api_key: "your-scout-band-api-key"
 
-graph_builder:
-  agent_id: "your-graphbuilder-uuid"
-  api_key: "your-graphbuilder-band-api-key"
+graph_agent:
+  agent_id: "your-graph-agent-uuid"
+  api_key: "your-graph-agent-band-api-key"
+
+connector:
+  agent_id: "your-connector-uuid"
+  api_key: "your-connector-band-api-key"
 
 critic:
   agent_id: "your-critic-uuid"
