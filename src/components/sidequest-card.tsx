@@ -1,7 +1,4 @@
-"use client";
-
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -10,30 +7,20 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { SideQuest } from "@/lib/types";
-import { CheckCircle2, Copy, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { CheckCircle2, Sparkles } from "lucide-react";
+import Link from "next/link";
 
 interface SideQuestCardProps {
   sideQuest: SideQuest;
-  onShowWhy?: () => void;
   highlighted?: boolean;
   featured?: boolean;
 }
 
 export function SideQuestCard({
   sideQuest,
-  onShowWhy,
   highlighted,
   featured,
 }: SideQuestCardProps) {
-  const [copied, setCopied] = useState(false);
-
-  const copyIntro = async () => {
-    await navigator.clipboard.writeText(sideQuest.draftIntro);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   return (
     <Card
       className={
@@ -98,15 +85,25 @@ export function SideQuestCard({
           {sideQuest.pathDescription}
         </p>
 
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={onShowWhy}>
-            Why?
-          </Button>
-          <Button size="sm" onClick={() => void copyIntro()}>
-            <Copy className="size-4" />
-            {copied ? "Copied!" : "Draft Introduction"}
-          </Button>
-        </div>
+        <Link
+          href={`/graph?quest=${sideQuest.id}`}
+          className="inline-flex h-8 items-center rounded-lg border border-border px-3 text-sm font-medium hover:bg-muted"
+        >
+          Why? — view cross-conversation path
+        </Link>
+
+        <details className="group rounded-lg border border-border bg-muted/20 p-3">
+          <summary className="cursor-pointer text-sm font-medium">
+            Draft Introduction — click to expand
+          </summary>
+          <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed">
+            {sideQuest.draftIntro}
+          </p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Select the text above to copy, or use your browser&apos;s copy
+            shortcut.
+          </p>
+        </details>
       </CardContent>
     </Card>
   );

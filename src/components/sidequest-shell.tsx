@@ -94,6 +94,7 @@ export function SideQuestShell({ initial }: SideQuestShellProps) {
     null,
   );
   const [demoError, setDemoError] = useState<string | null>(null);
+  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
 
   const refreshGraph = useCallback(async () => {
     const response = await fetch("/api/graph");
@@ -219,18 +220,83 @@ export function SideQuestShell({ initial }: SideQuestShellProps) {
     setLoading(false);
   };
 
+  const pollPlaudTranscript = async (
+    transcriptionId: string,
+    title: string,
+  ): Promise<Conversation> => {
+    for (let attempt = 0; attempt < 40; attempt += 1) {
+      setUploadStatus(`Plaud transcribing… (${attempt + 1}/40)`);
+      const response = await fetch(`/api/transcribe/${transcriptionId}`);
+      const data = (await response.json()) as {
+        status?: string;
+        transcript?: Conversation;
+        error?: string;
+      };
+      if (data.error) throw new Error(data.error);
+      if (data.status === "SUCCESS" && data.transcript) {
+        return {
+          ...data.transcript,
+          title,
+          processingStatus: "pending",
+        };
+      }
+      if (data.status === "FAILED") {
+        throw new Error("Plaud transcription failed");
+      }
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+    }
+    throw new Error(
+      "Transcription timed out — paste the transcript at /conversations/add instead",
+    );
+  };
+
   const uploadAudio = async (file: File) => {
     setLoading(true);
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("title", file.name);
-    const response = await fetch("/api/transcribe", { method: "POST", body: formData });
-    const data = (await response.json()) as {
-      conversation?: Conversation;
-      transcriptionId?: string;
-    };
-    if (data.conversation) await ingestOne(data.conversation);
-    setLoading(false);
+    setUploadStatus("Uploading audio to Plaud…");
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("title", file.name.replace(/\.[^.]+$/, ""));
+      const response = await fetch("/api/transcribe", {
+        method: "POST",
+        body: formData,
+      });
+      const data = (await response.json()) as {
+        conversation?: Conversation;
+        transcriptionId?: string;
+        title?: string;
+        error?: string;
+        notice?: string;
+      };
+      if (data.error) throw new Error(data.error);
+
+      if (data.conversation) {
+        setUploadStatus(data.notice ?? "Processing conversation…");
+        await ingestOne(data.conversation);
+        setUploadStatus("Done — check SideQuests tab");
+        return;
+      }
+
+      if (data.transcriptionId) {
+        const conversation = await pollPlaudTranscript(
+          data.transcriptionId,
+          data.title ?? file.name,
+        );
+        setUploadStatus("Extracting entities and updating graph…");
+        await ingestOne(conversation);
+        setUploadStatus("Done — SideQuest updated");
+        return;
+      }
+
+      throw new Error("Unexpected Plaud response");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Audio upload failed";
+      setUploadStatus(message);
+      setStatus({ stage: "error", message });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const kickoffBand = async () => {
@@ -311,6 +377,12 @@ export function SideQuestShell({ initial }: SideQuestShellProps) {
           >
             Reload demo
           </a>
+          <a
+            href="/conversations/add"
+            className="inline-flex h-7 items-center rounded-lg border border-amber-500/50 bg-amber-500/10 px-2.5 text-sm text-amber-500 hover:bg-amber-500/20"
+          >
+            Add real conversation
+          </a>
         </div>
         {demoError && (
           <p className="text-sm text-red-500">
@@ -345,12 +417,7 @@ export function SideQuestShell({ initial }: SideQuestShellProps) {
 
         <TabsContent value="dashboard" className="mt-6 space-y-6">
           {featured ? (
-            <SideQuestCard
-              sideQuest={featured}
-              featured
-              highlighted
-              onShowWhy={() => showWhy(featured)}
-            />
+            <SideQuestCard sideQuest={featured} featured highlighted />
           ) : (
             <Card className="border-dashed">
               <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
@@ -408,21 +475,46 @@ export function SideQuestShell({ initial }: SideQuestShellProps) {
         </TabsContent>
 
         <TabsContent value="conversations" className="mt-6 space-y-4">
+          <Card className="border-amber-500/30 bg-amber-500/5">
+            <CardHeader>
+              <CardTitle className="text-base">Record at Hack Day with Plaud</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm text-muted-foreground">
+              <p>1. Record a booth chat or hallway conversation on your Plaud device.</p>
+              <p>2. Export the audio (.mp3 / .wav) from the Plaud app.</p>
+              <p>3. Upload below — SideQuest transcribes, extracts entities, updates Neo4j.</p>
+              <p>
+                4. After 3+ conversations, cross-conversation SideQuests appear. Or{" "}
+                <a href="/conversations/add" className="text-amber-500 underline">
+                  paste a transcript manually
+                </a>{" "}
+                (works without JavaScript).
+              </p>
+              {services.plaud ? (
+                <Badge>Plaud: connected</Badge>
+              ) : (
+                <Badge variant="secondary">Plaud: not configured on server</Badge>
+              )}
+            </CardContent>
+          </Card>
           <ConversationForm onSubmit={(c) => void ingestOne(c)} loading={loading} />
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Plaud audio upload</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-2">
               <Input
                 type="file"
-                accept="audio/*"
+                accept="audio/*,.mp3,.wav,.m4a,.ogg"
                 disabled={loading}
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) void uploadAudio(file);
                 }}
               />
+              {uploadStatus && (
+                <p className="text-sm text-muted-foreground">{uploadStatus}</p>
+              )}
             </CardContent>
           </Card>
           <TranscriptPanel conversation={selectedConv} />
@@ -464,7 +556,6 @@ export function SideQuestShell({ initial }: SideQuestShellProps) {
                 key={sq.id}
                 sideQuest={sq}
                 highlighted={activeQuestId === sq.id}
-                onShowWhy={() => showWhy(sq)}
               />
             ))
           )}
