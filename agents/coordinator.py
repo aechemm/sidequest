@@ -42,15 +42,15 @@ def post_kickoff(transcript: dict, meeting_id: str) -> str:
 
     _, api_key = load_extractor_credentials()
     preview = transcript.get("text", "")[:1200]
-    message = (
-        f"@hmorder/graphagent Process this SideQuest conversation (id: {meeting_id}).\n\n"
+    content = (
+        f"@hmorder/extractor Process this SideQuest conversation (id: {meeting_id}).\n\n"
         f"```json\n{json.dumps({'conversation': transcript, 'meetingId': meeting_id}, indent=2)[:8000]}\n```\n\n"
         f"Preview:\n{preview}"
     )
 
     payload = json.dumps({
         "message": {
-            "content": f"@hmorder/extractor {message}",
+            "content": content,
             "mentions": [{"handle": "hmorder/extractor"}],
         }
     }).encode("utf-8")
