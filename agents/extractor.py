@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""SideQuest ScoutAgent — searches the graph for cross-conversation connections."""
+"""SideQuest ExtractorAgent — extracts people, companies, problems, offers from transcripts."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("scout")
+logger = logging.getLogger("extractor")
 
 CRUSOE_BASE_URL = os.getenv("CRUSOE_BASE_URL", "https://api.inference.crusoecloud.com/v1/")
 CRUSOE_MODEL = os.getenv("CRUSOE_MODEL", "meta-llama/Llama-3.3-70B-Instruct")
@@ -29,15 +29,14 @@ def build_adapter():
             base_url=CRUSOE_BASE_URL,
         ),
         checkpointer=InMemorySaver(),
-        custom_section="""You are SideQuest ScoutAgent in a Band room.
+        custom_section="""You are SideQuest ExtractorAgent in a Band room.
 
-After GraphAgent updates Neo4j:
-1. Search across ALL conversations for useful multi-hop connections.
-2. Favor insights where NO single conversation contains the full conclusion.
-3. Example: Alice PROVIDES private AI + Bob NEEDS private AI → potential intro.
-4. Post candidate paths, then @mention @ConnectorAgent.
+When @mentioned with a conversation transcript:
+1. Extract people, companies, products, skills, problems, needs, offers, claims, interests.
+2. Every fact needs provenance: conversation ID, quote, speaker, timestamp.
+3. Post structured JSON, then @mention @GraphAgent.
 
-You search — you do not write introductions.""",
+Do NOT discover cross-conversation connections — ScoutAgent does that.""",
     )
 
 
@@ -45,9 +44,9 @@ async def main() -> None:
     from band import Agent
     from band.config import load_agent_config
 
-    agent_id, api_key = load_agent_config("scout")
+    agent_id, api_key = load_agent_config("extractor")
     agent = Agent.create(adapter=build_adapter(), agent_id=agent_id, api_key=api_key)
-    logger.info("ScoutAgent running — scanning cross-conversation paths")
+    logger.info("ExtractorAgent running")
     await agent.run()
 
 

@@ -1,6 +1,6 @@
 import { ingestConversation, runDiscovery } from "@/lib/pipeline";
 import { DEMO_CONVERSATIONS } from "@/lib/sample-conversations";
-import type { Conversation } from "@/lib/types";
+import type { AgentActivityEvent, Conversation } from "@/lib/types";
 
 export async function POST(request: Request) {
   try {
@@ -22,15 +22,20 @@ export async function POST(request: Request) {
         );
       }
 
-      // Ingest all if demo
+      const allActivities: AgentActivityEvent[] = [];
+
       if (body.action === "demo") {
         for (const conv of conversations) {
-          await ingestConversation(conv);
+          const ingested = await ingestConversation(conv);
+          allActivities.push(...ingested.activities);
         }
       }
 
       const result = await runDiscovery(conversations);
-      return Response.json(result);
+      return Response.json({
+        ...result,
+        activities: [...allActivities, ...result.activities],
+      });
     }
 
     const conversation = body.conversation;

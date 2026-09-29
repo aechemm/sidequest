@@ -17,12 +17,14 @@ interface SideQuestCardProps {
   sideQuest: SideQuest;
   onShowWhy?: () => void;
   highlighted?: boolean;
+  featured?: boolean;
 }
 
 export function SideQuestCard({
   sideQuest,
   onShowWhy,
   highlighted,
+  featured,
 }: SideQuestCardProps) {
   const [copied, setCopied] = useState(false);
 
@@ -35,39 +37,56 @@ export function SideQuestCard({
   return (
     <Card
       className={
-        highlighted
-          ? "border-primary ring-2 ring-primary/30 shadow-lg"
+        highlighted || featured
+          ? "border-amber-500/50 ring-2 ring-amber-500/20 shadow-lg shadow-amber-500/5"
           : undefined
       }
     >
       <CardHeader>
         <div className="flex items-start justify-between gap-2">
           <div className="space-y-1">
+            {featured && (
+              <p className="text-xs font-semibold uppercase tracking-wider text-amber-500">
+                SideQuest Discovered
+              </p>
+            )}
             <CardTitle className="flex items-center gap-2 text-lg">
-              <Sparkles className="size-5 text-amber-500" />
-              SideQuest Discovered
+              {!featured && <Sparkles className="size-5 text-amber-500" />}
+              {sideQuest.people.join(" ↔ ")}
             </CardTitle>
-            <CardDescription className="text-base font-medium text-foreground">
-              {sideQuest.title}
+            <CardDescription className="text-base text-foreground/90">
+              {sideQuest.reason}
             </CardDescription>
           </div>
-          {sideQuest.approved && (
-            <Badge className="shrink-0 gap-1">
-              <CheckCircle2 className="size-3" />
-              APPROVED
-            </Badge>
-          )}
+          <div className="flex shrink-0 flex-col items-end gap-1">
+            {sideQuest.approved && (
+              <Badge className="gap-1">
+                <CheckCircle2 className="size-3" />
+                APPROVED
+              </Badge>
+            )}
+            <Badge variant="outline">Confidence: {sideQuest.confidence}</Badge>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-sm">{sideQuest.reason}</p>
+        {sideQuest.evidence.length > 0 && (
+          <div>
+            <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">
+              Evidence
+            </p>
+            <ul className="space-y-1 text-sm">
+              {sideQuest.evidence.map((item) => (
+                <li key={item} className="flex gap-2">
+                  <span className="text-amber-500">•</span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div className="flex flex-wrap gap-2">
-          {sideQuest.people.map((p) => (
-            <Badge key={p} variant="secondary">
-              {p}
-            </Badge>
-          ))}
           {sideQuest.bonusPeople?.map((p) => (
             <Badge key={p} variant="outline">
               + {p}
@@ -75,7 +94,7 @@ export function SideQuestCard({
           ))}
         </div>
 
-        <p className="rounded-md bg-muted/50 p-2 font-mono text-xs text-muted-foreground">
+        <p className="rounded-md bg-muted/40 p-2 font-mono text-xs text-muted-foreground">
           {sideQuest.pathDescription}
         </p>
 
@@ -88,15 +107,6 @@ export function SideQuestCard({
             {copied ? "Copied!" : "Draft Introduction"}
           </Button>
         </div>
-
-        <details className="text-sm">
-          <summary className="cursor-pointer text-muted-foreground">
-            Preview intro
-          </summary>
-          <p className="mt-2 whitespace-pre-wrap rounded-md border p-3 text-sm">
-            {sideQuest.draftIntro}
-          </p>
-        </details>
       </CardContent>
     </Card>
   );

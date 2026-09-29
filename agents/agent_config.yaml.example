@@ -1,10 +1,14 @@
-scout:
-  agent_id: "your-scout-uuid"
-  api_key: "your-scout-band-api-key"
+extractor:
+  agent_id: "your-extractor-uuid"
+  api_key: "your-extractor-band-api-key"
 
 graph_agent:
   agent_id: "your-graph-agent-uuid"
   api_key: "your-graph-agent-band-api-key"
+
+scout:
+  agent_id: "your-scout-uuid"
+  api_key: "your-scout-band-api-key"
 
 connector:
   agent_id: "your-connector-uuid"

@@ -69,7 +69,12 @@ export function discoverSideQuests(
         people: ["Alice", "Bob"],
         bonusPeople: charlie ? ["Charlie"] : undefined,
         reason:
-          "Alice's private-inference technology potentially addresses Bob's patient-data constraint.",
+          "Alice's private inference technology may address Bob's requirement to keep patient data inside his organization's environment.",
+        evidence: [
+          "Alice discussed private VPC inference",
+          "Bob discussed restrictions around external patient-data processing",
+        ],
+        confidence: "HIGH",
         pathDescription:
           "Alice → PROVIDES → Private VPC Inference ↔ Private PHI Processing ← HAS_PROBLEM ← Bob",
         conversationIds: conversations.map((c) => c.id),
@@ -97,7 +102,13 @@ You seem to be solving each other's problem. Worth a 10-minute chat at Hack Day?
         people: charlie ? ["Charlie"] : [],
         bonusPeople: ["Alice", "Bob"],
         reason:
-          "Charlie is actively seeking healthcare AI companies — Alice and Bob's conversation thread is healthcare-relevant.",
+          "Charlie is actively seeking healthcare AI companies — Alice and Bob's thread is healthcare-relevant.",
+        evidence: [
+          "Charlie is seeking healthcare AI companies for an accelerator",
+          "Bob's problem is hospital PHI constraints",
+          "Alice provides private inference infrastructure",
+        ],
+        confidence: "MEDIUM",
         pathDescription:
           "Charlie → SEEKS → Healthcare AI ↔ Private PHI Processing ← Bob; Alice → PROVIDES → Private Inference",
         conversationIds: conversations.map((c) => c.id),

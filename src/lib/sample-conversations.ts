@@ -4,6 +4,10 @@ export const DEMO_CONVERSATIONS: Conversation[] = [
   {
     id: "conv-alice",
     title: "Conversation 1 — Alice @ Crusoe booth",
+    participant: "Alice",
+    company: "Crusoe",
+    summary: "Private VPC inference platform",
+    processingStatus: "complete",
     source: "mock",
     language: "en",
     duration: 32,
@@ -21,6 +25,10 @@ export const DEMO_CONVERSATIONS: Conversation[] = [
   {
     id: "conv-bob",
     title: "Conversation 2 — Bob @ healthcare panel",
+    participant: "Bob",
+    company: "Metro Hospital",
+    summary: "PHI must stay on-prem",
+    processingStatus: "complete",
     source: "mock",
     language: "en",
     duration: 28,
@@ -38,6 +46,10 @@ export const DEMO_CONVERSATIONS: Conversation[] = [
   {
     id: "conv-charlie",
     title: "Conversation 3 — Charlie @ startup lounge",
+    participant: "Charlie",
+    company: "HealthTech Accelerator",
+    summary: "Seeking healthcare AI startups",
+    processingStatus: "complete",
     source: "mock",
     language: "en",
     duration: 24,

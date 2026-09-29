@@ -55,6 +55,7 @@ export async function extractEntities(
   return entities.map((e, i) => ({
     ...e,
     id: `ent-${conversation.id}-${i}`,
+    conversationId: conversation.id,
     confidence: e.confidence ?? 0.8,
   }));
 }
@@ -97,6 +98,7 @@ function extractEntitiesMock(conversation: Conversation): ExtractedEntity[] {
         relation: rule.relation,
         topic: rule.topic,
         quote: segment.text,
+        conversationId: conversation.id,
         timestampStart: segment.start,
         timestampEnd: segment.end,
         confidence: 0.9,

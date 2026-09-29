@@ -1,5 +1,5 @@
-import { SideQuestApp } from "@/components/sidequest-app";
+import { SideQuestShell } from "@/components/sidequest-shell";
 
 export default function Home() {
-  return <SideQuestApp />;
+  return <SideQuestShell />;
 }
