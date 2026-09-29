@@ -1,7 +1,6 @@
 import { ingestManualConversation } from "@/app/actions/ingest-conversation";
 import { AppHeader } from "@/components/app-header";
 import { AppNav } from "@/components/app-nav";
-import { getAppState } from "@/lib/demo-state";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -11,19 +10,18 @@ interface AddPageProps {
 }
 
 export default async function AddConversationPage({ searchParams }: AddPageProps) {
-  const state = await getAppState();
   const { error } = await searchParams;
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6">
-      <AppHeader services={state.services} />
+      <AppHeader />
       <AppNav active="/conversations" />
 
       <div className="mx-auto w-full max-w-2xl space-y-6">
         <div className="space-y-2">
-          <h2 className="text-xl font-semibold">Add a real conversation</h2>
+          <h2 className="text-xl font-semibold">Add a conversation</h2>
           <p className="text-sm text-muted-foreground">
-            Paste a transcript from the Plaud App. Works without JavaScript.
+            Paste a transcript from Plaud or any notes you captured.
           </p>
         </div>
 
@@ -45,19 +43,19 @@ export default async function AddConversationPage({ searchParams }: AddPageProps
               id="title"
               name="title"
               required
-              placeholder="Alice @ Crusoe booth"
+              placeholder="Chat with Jordan at the booth"
               className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
             />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label htmlFor="participant" className="mb-1 block text-sm font-medium">
-                Participant
+                Person
               </label>
               <input
                 id="participant"
                 name="participant"
-                placeholder="Alice"
+                placeholder="Jordan"
                 className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
               />
             </div>
@@ -68,7 +66,7 @@ export default async function AddConversationPage({ searchParams }: AddPageProps
               <input
                 id="company"
                 name="company"
-                placeholder="Crusoe"
+                placeholder="Acme"
                 className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
               />
             </div>
@@ -83,7 +81,7 @@ export default async function AddConversationPage({ searchParams }: AddPageProps
               required
               rows={8}
               placeholder={
-                "Alice: We built an inference platform...\nBob: Our hospital can't send patient data off-prem..."
+                "Jordan: We’re looking for private AI that can stay on-prem.\nYou: Interesting — I met someone building that earlier…"
               }
               className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
             />
@@ -97,13 +95,13 @@ export default async function AddConversationPage({ searchParams }: AddPageProps
         </form>
 
         <p className="text-sm text-muted-foreground">
-          Have audio instead?{" "}
+          Prefer audio?{" "}
           <Link href="/conversations/upload" className="text-amber-500 underline">
-            Upload a file
+            Upload a recording
           </Link>
-          . Device pairing help:{" "}
+          . Or{" "}
           <Link href="/plaud" className="text-amber-500 underline">
-            /plaud
+            sync from Plaud
           </Link>
           .
         </p>

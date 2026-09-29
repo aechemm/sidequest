@@ -36,7 +36,7 @@ export async function finishPlaudLoginAction(formData: FormData) {
   if (!code || !returnedState) {
     redirect(
       "/plaud/finish-login?error=" +
-        encodeURIComponent("URL must include code and state (from localhost:8199/auth/callback?...)"),
+        encodeURIComponent("That link is missing the sign-in details. Paste the full redirect URL from your browser."),
     );
   }
 
@@ -47,7 +47,7 @@ export async function finishPlaudLoginAction(formData: FormData) {
     redirect(
       "/plaud/finish-login?error=" +
         encodeURIComponent(
-          "No active login session. In Desktop terminal run: npm run plaud:login",
+          "No active sign-in session. Start Plaud connect again from the Plaud page.",
         ),
     );
   }
@@ -56,7 +56,7 @@ export async function finishPlaudLoginAction(formData: FormData) {
     redirect(
       "/plaud/finish-login?error=" +
         encodeURIComponent(
-          "Login session expired/mismatch. Run npm run plaud:login again, then authorize once.",
+          "Sign-in session expired. Start connect again, authorize once, then paste the new link.",
         ),
     );
   }
@@ -81,7 +81,9 @@ export async function finishPlaudLoginAction(formData: FormData) {
     const detail = await res.text();
     redirect(
       "/plaud/finish-login?error=" +
-        encodeURIComponent(`Token exchange failed (${res.status}): ${detail}`),
+        encodeURIComponent(
+          "Couldn’t finish connecting. Start connect again, authorize once, then paste the new link.",
+        ),
     );
   }
 

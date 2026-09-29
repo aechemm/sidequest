@@ -1,33 +1,25 @@
-# Deploy SideQuest publicly
+# Deploy SideQuest
 
-## Option A — Public URL right now (Cloudflare tunnel)
+## Option A — Public URL (Cloudflare tunnel)
 
-The cloud agent can expose port 4318 via a temporary public URL:
+While a cloud agent session is running, the app can be exposed via a temporary public URL on port 4318.
 
+```bash
+cloudflared tunnel --url http://127.0.0.1:4318
 ```
-https://stockholm-blocked-jumping-kit.trycloudflare.com
-```
 
-This works while the cloud agent session is running. Share this link for demos and judging.
+## Option B — Vercel
 
-## Option B — Vercel (recommended permanent host)
-
-1. Push this repo to GitHub (`aechemm/sidequest`)
-2. Go to [vercel.com/new](https://vercel.com/new) → Import the repo
-3. Add environment variables from `.env.example` (Crusoe, Neo4j, Plaud, BAND)
+1. Push this repo to your Git host
+2. Import the project in [Vercel](https://vercel.com/new)
+3. Add environment variables from `.env.example`
 4. Deploy — Vercel auto-detects Next.js
 
-No code changes needed. The app builds with `npm run build`.
-
-## Option C — Run production locally
+## Option C — Production locally
 
 ```bash
 npm run build
 npm start
 ```
 
-Serves on http://127.0.0.1:4318 with preloaded demo data.
-
-## Demo note
-
-The homepage **preloads the Alice ↔ Bob SideQuest** on load. Charlie appears as a **+ Charlie** bonus connection and in the second SideQuest card under the **SideQuests** tab.
+Serves on [http://127.0.0.1:4318](http://127.0.0.1:4318).

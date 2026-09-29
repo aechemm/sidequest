@@ -44,7 +44,7 @@ export async function ingestConversation(
   const activities: AgentActivityEvent[] = [];
   const status: PipelineStatus = {
     stage: "extracting",
-    message: `ExtractorAgent processing ${conversation.title}…`,
+    message: `Extracting people and topics from ${conversation.title}…`,
     conversationId: conversation.id,
   };
 
@@ -55,7 +55,7 @@ export async function ingestConversation(
   );
 
   status.stage = "building_graph";
-  status.message = "GraphAgent updating Neo4j…";
+  status.message = "Updating relationship graph…";
 
   const verdicts: CriticVerdict[] = entities.map((e) => {
     const supported =
@@ -67,7 +67,7 @@ export async function ingestConversation(
       approved: supported,
       reason: supported
         ? "Supported by recorded conversation."
-        : "BLOCKED — quote not found in conversation.",
+        : "Held back — quote not found in conversation.",
     };
   });
 
@@ -80,14 +80,18 @@ export async function ingestConversation(
     );
     activities.push(...graphEvents());
   } catch {
-    status.message = "Entities extracted — connect Neo4j Aura to persist graph.";
+    status.message = "Details extracted — graph storage unavailable right now.";
     activities.push(
-      agentEvent("GraphAgent", "Mock graph mode — Neo4j not connected", "info"),
+      agentEvent(
+        "GraphAgent",
+        "Could not save to graph — continuing with this session",
+        "info",
+      ),
     );
   }
 
   status.stage = "complete";
-  status.message = `Ingested ${conversation.title} — ${verdicts.filter((v) => v.approved).length} entities approved.`;
+  status.message = `Processed ${conversation.title} — ${verdicts.filter((v) => v.approved).length} details verified.`;
 
   return { entities, verdicts, status, activities };
 }
@@ -104,7 +108,7 @@ export async function runDiscovery(
   const activities: AgentActivityEvent[] = [];
   const status: PipelineStatus = {
     stage: "discovering",
-    message: "ScoutAgent scanning cross-conversation paths…",
+    message: "Looking across conversations for introductions…",
   };
 
   activities.push(...scoutEvents());
@@ -113,13 +117,13 @@ export async function runDiscovery(
   try {
     graph = await fetchGraph();
   } catch {
-    graph = getMockGraph();
+    graph = { nodes: [], links: [] };
   }
 
   let sideQuests = discoverSideQuests(conversations, graph);
 
   status.stage = "critiquing";
-  status.message = "ConnectorAgent + CriticAgent reviewing introductions…";
+  status.message = "Checking each introduction against what was said…";
 
   const approvedQuests: SideQuest[] = [];
   for (const sq of sideQuests) {
@@ -136,8 +140,8 @@ export async function runDiscovery(
   status.stage = "complete";
   status.message =
     sideQuests.length > 0
-      ? `SideQuest discovered — ${sideQuests.length} connection${sideQuests.length > 1 ? "s" : ""} across ${conversations.length} conversations.`
-      : "No cross-conversation connections yet — ingest more conversations.";
+      ? `Found ${sideQuests.length} introduction${sideQuests.length > 1 ? "s" : ""} across ${conversations.length} conversations.`
+      : "No introductions yet — add a few more conversations.";
 
   return {
     sideQuests,
@@ -148,7 +152,7 @@ export async function runDiscovery(
   };
 }
 
-/** Instant deterministic demo — no Crusoe/Neo4j calls (reliable on local laptops). */
+/** Offline sample pipeline for internal tests — not shown in the product UI. */
 export async function runDemoMock(conversations: Conversation[]): Promise<{
   sideQuests: SideQuest[];
   status: PipelineStatus;
@@ -174,22 +178,18 @@ export async function runDemoMock(conversations: Conversation[]): Promise<{
   for (const sq of sideQuests) {
     activities.push(...connectorEvents(sq.title));
     activities.push(
-      ...criticEvents(
-        true,
-        "Demo mode — Alice/Bob connection supported by sample conversations.",
-      ),
+      ...criticEvents(true, "Supported by the sample conversations."),
     );
     sq.approved = true;
-    sq.criticReason =
-      "Demo mode — Alice/Bob connection supported by sample conversations.";
+    sq.criticReason = "Supported by the sample conversations.";
   }
 
   const status: PipelineStatus = {
     stage: "complete",
     message:
       sideQuests.length > 0
-        ? `SideQuest discovered — ${sideQuests.length} connection${sideQuests.length > 1 ? "s" : ""} across ${conversations.length} conversations.`
-        : "No cross-conversation connections yet — ingest more conversations.",
+        ? `Found ${sideQuests.length} introduction${sideQuests.length > 1 ? "s" : ""} across ${conversations.length} conversations.`
+        : "No introductions yet — add a few more conversations.",
     sideQuestsFound: sideQuests.length,
   };
 

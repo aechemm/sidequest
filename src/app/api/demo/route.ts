@@ -1,7 +1,7 @@
 import { runDemoMock } from "@/lib/pipeline";
 import { DEMO_CONVERSATIONS } from "@/lib/sample-conversations";
 
-/** Quick health check: open http://127.0.0.1:4318/api/demo in a browser */
+/** Internal sample pipeline — not linked from the product UI. */
 export async function GET() {
   const result = await runDemoMock(DEMO_CONVERSATIONS);
   return Response.json({

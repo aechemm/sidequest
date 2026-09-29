@@ -1,33 +1,65 @@
 import type { Conversation, GraphData, SideQuest } from "./types";
 
-/** Topic clusters that bridge across demo conversations */
-const TOPIC_BRIDGES: Array<{
-  topics: string[];
-  match: (t: string) => boolean;
-}> = [
-  {
-    topics: ["Private VPC Inference", "Private PHI Processing"],
-    match: (t) =>
-      /private|vpc|on-prem|phi|patient|inference/i.test(t),
-  },
-  {
-    topics: ["Healthcare AI Companies", "Private PHI Processing"],
-    match: (t) => /healthcare|phi|hospital|medical/i.test(t),
-  },
-];
+type PersonTopic = { topic: string; relation: string; convId: string };
+
+const PROVIDER_RELATIONS = new Set([
+  "PROVIDES",
+  "WORKS_ON",
+  "BUILDS",
+  "OFFERS",
+]);
+const NEED_RELATIONS = new Set(["HAS_PROBLEM", "NEEDS"]);
+const SEEK_RELATIONS = new Set(["SEEKS", "LOOKING_FOR", "INTERESTED_IN"]);
+
+function topicTokens(label: string): string[] {
+  return label
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((t) => t.length > 3);
+}
+
+function topicsRelated(a: string, b: string): boolean {
+  if (a.toLowerCase() === b.toLowerCase()) return true;
+  const ta = topicTokens(a);
+  const tb = topicTokens(b);
+  if (ta.some((t) => tb.includes(t))) return true;
+  const bridge =
+    /private|vpc|on-prem|phi|patient|inference|healthcare|hospital|medical|data|ai|ml|security|startup|accelerator/i;
+  return bridge.test(a) && bridge.test(b);
+}
+
+function buildHighlightPath(
+  graph: GraphData,
+  people: string[],
+  topics: string[],
+): GraphData {
+  const labels = new Set([...people, ...topics]);
+  const nodes = graph.nodes.filter((n) => labels.has(n.label));
+  const nodeIds = new Set(nodes.map((n) => n.id));
+  const links = graph.links.filter(
+    (l) => nodeIds.has(l.source) && nodeIds.has(l.target),
+  );
+  return { nodes, links };
+}
+
+function evidenceFor(
+  person: string,
+  entry: PersonTopic,
+  conversations: Conversation[],
+): string {
+  const conv = conversations.find((c) => c.id === entry.convId);
+  if (conv?.summary) return `${person}: ${conv.summary}`;
+  return `${person} discussed ${entry.topic}`;
+}
 
 export function discoverSideQuests(
   conversations: Conversation[],
   graph: GraphData,
 ): SideQuest[] {
   const people = graph.nodes.filter((n) => n.type === "Person");
-  const topics = graph.nodes.filter((n) => n.type === "Topic");
   const links = graph.links;
 
-  const personTopics = new Map<
-    string,
-    Array<{ topic: string; relation: string; convId: string }>
-  >();
+  const personTopics = new Map<string, PersonTopic[]>();
 
   for (const link of links) {
     const sourceNode = graph.nodes.find((n) => n.id === link.source);
@@ -46,118 +78,117 @@ export function discoverSideQuests(
   }
 
   const sideQuests: SideQuest[] = [];
+  const seen = new Set<string>();
 
-  // Alice ↔ Bob: provider meets problem (private inference / PHI)
-  const alice = people.find((p) => p.label === "Alice");
-  const bob = people.find((p) => p.label === "Bob");
-  const charlie = people.find((p) => p.label === "Charlie");
+  const providers: Array<{ person: string; entry: PersonTopic }> = [];
+  const needers: Array<{ person: string; entry: PersonTopic }> = [];
+  const seekers: Array<{ person: string; entry: PersonTopic }> = [];
 
-  if (alice && bob) {
-    const aliceTopics = personTopics.get("Alice") ?? [];
-    const bobTopics = personTopics.get("Bob") ?? [];
-    const providerRelations = new Set([
-      "PROVIDES",
-      "WORKS_ON",
-      "BUILDS",
-      "OFFERS",
-    ]);
-    const needRelations = new Set(["HAS_PROBLEM", "NEEDS"]);
-    const privateTopic = (label: string) =>
-      /private|vpc|on-prem|phi|patient|inference|data privacy/i.test(label);
+  for (const person of people) {
+    for (const entry of personTopics.get(person.label) ?? []) {
+      if (PROVIDER_RELATIONS.has(entry.relation)) {
+        providers.push({ person: person.label, entry });
+      }
+      if (NEED_RELATIONS.has(entry.relation)) {
+        needers.push({ person: person.label, entry });
+      }
+      if (SEEK_RELATIONS.has(entry.relation)) {
+        seekers.push({ person: person.label, entry });
+      }
+    }
+  }
 
-    const providesPrivate = aliceTopics.some(
-      (t) => providerRelations.has(t.relation) && privateTopic(t.topic),
-    );
-    const needsPrivate = bobTopics.some(
-      (t) => needRelations.has(t.relation) && privateTopic(t.topic),
-    );
+  for (const provider of providers) {
+    for (const needer of needers) {
+      if (provider.person === needer.person) continue;
+      if (!topicsRelated(provider.entry.topic, needer.entry.topic)) continue;
 
-    if (providesPrivate && needsPrivate) {
+      const key = [provider.person, needer.person].sort().join("|");
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      const bonus = seekers
+        .filter(
+          (s) =>
+            s.person !== provider.person &&
+            s.person !== needer.person &&
+            (topicsRelated(s.entry.topic, provider.entry.topic) ||
+              topicsRelated(s.entry.topic, needer.entry.topic)),
+        )
+        .map((s) => s.person)
+        .filter((name, i, arr) => arr.indexOf(name) === i)
+        .slice(0, 2);
+
       sideQuests.push({
-        id: "sq-alice-bob",
-        title: "Introduce Alice to Bob",
-        people: ["Alice", "Bob"],
-        bonusPeople: charlie ? ["Charlie"] : undefined,
-        reason:
-          "Alice's private inference technology may address Bob's requirement to keep patient data inside his organization's environment.",
+        id: `sq-${key.replace(/\W+/g, "-").toLowerCase()}`,
+        title: `Introduce ${provider.person} to ${needer.person}`,
+        people: [provider.person, needer.person],
+        bonusPeople: bonus.length > 0 ? bonus : undefined,
+        reason: `${provider.person}'s work on ${provider.entry.topic} may help with ${needer.person}'s need around ${needer.entry.topic}.`,
         evidence: [
-          "Alice discussed private VPC inference",
-          "Bob discussed restrictions around external patient-data processing",
+          evidenceFor(provider.person, provider.entry, conversations),
+          evidenceFor(needer.person, needer.entry, conversations),
         ],
         confidence: "HIGH",
-        pathDescription:
-          "Alice → PROVIDES → Private VPC Inference ↔ Private PHI Processing ← HAS_PROBLEM ← Bob",
+        pathDescription: `${provider.person} → ${provider.entry.relation} → ${provider.entry.topic} ↔ ${needer.entry.topic} ← ${needer.entry.relation} ← ${needer.person}`,
         conversationIds: conversations.map((c) => c.id),
         approved: true,
-        draftIntro: `Hi Alice and Bob — I think you two should meet.
+        draftIntro: `Hi ${provider.person} and ${needer.person} — I think you two should meet.
 
-Alice, you mentioned building inference that runs inside a customer's VPC with no data leaving their environment. Bob, you shared that your hospital can't send patient data off-prem and needs private AI.
+${provider.person}, you mentioned ${provider.entry.topic}. ${needer.person}, you shared a need around ${needer.entry.topic}.
 
-You seem to be solving each other's problem. Worth a 10-minute chat at Hack Day?`,
+You seem to be solving each other's problem. Worth a short intro?`,
         highlightPath: buildHighlightPath(
           graph,
-          ["Alice", "Bob"],
-          [
-            aliceTopics.find((t) => privateTopic(t.topic))?.topic ??
-              "Private VPC Inference",
-            bobTopics.find((t) => privateTopic(t.topic))?.topic ??
-              "Private PHI Processing",
-          ],
+          [provider.person, needer.person, ...bonus],
+          [provider.entry.topic, needer.entry.topic],
         ),
       });
     }
   }
 
-  if (charlie && (alice || bob)) {
-    const charlieTopics = personTopics.get("Charlie") ?? [];
-    const seeksHealthcare = charlieTopics.some(
-      (t) =>
-        t.relation === "SEEKS" &&
-        /healthcare|medical|hospital|accelerator/i.test(t.topic),
+  for (const seeker of seekers) {
+    const related = [...providers, ...needers].filter(
+      (p) =>
+        p.person !== seeker.person &&
+        topicsRelated(seeker.entry.topic, p.entry.topic),
     );
-    if (seeksHealthcare) {
-      sideQuests.push({
-        id: "sq-charlie-bonus",
-        title: "Loop in Charlie for healthcare AI",
-        people: charlie ? ["Charlie"] : [],
-        bonusPeople: ["Alice", "Bob"],
-        reason:
-          "Charlie is actively seeking healthcare AI companies — Alice and Bob's thread is healthcare-relevant.",
-        evidence: [
-          "Charlie is seeking healthcare AI companies for an accelerator",
-          "Bob's problem is hospital PHI constraints",
-          "Alice provides private inference infrastructure",
-        ],
-        confidence: "MEDIUM",
-        pathDescription:
-          "Charlie → SEEKS → Healthcare AI ↔ Private PHI Processing ← Bob; Alice → PROVIDES → Private Inference",
-        conversationIds: conversations.map((c) => c.id),
-        approved: true,
-        draftIntro: `Hi Charlie — you mentioned looking for healthcare AI companies for your accelerator.
+    const uniquePeople = related
+      .map((r) => r.person)
+      .filter((name, i, arr) => arr.indexOf(name) === i)
+      .slice(0, 3);
+    if (uniquePeople.length === 0) continue;
 
-I just connected Alice (private VPC inference) and Bob (hospital PHI constraints) — both are building in healthcare AI infrastructure. Might be worth a group intro?`,
-        highlightPath: buildHighlightPath(
-          graph,
-          ["Charlie", "Bob", "Alice"],
-          ["Healthcare AI Companies", "Private PHI Processing", "Private VPC Inference"],
-        ),
-      });
-    }
+    const key = `seek-${seeker.person}-${uniquePeople.join("-")}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    sideQuests.push({
+      id: `sq-${key.replace(/\W+/g, "-").toLowerCase()}`,
+      title: `Loop in ${seeker.person}`,
+      people: [seeker.person],
+      bonusPeople: uniquePeople,
+      reason: `${seeker.person} is looking for ${seeker.entry.topic}, which overlaps with people already in your network.`,
+      evidence: [
+        evidenceFor(seeker.person, seeker.entry, conversations),
+        ...related
+          .slice(0, 2)
+          .map((r) => evidenceFor(r.person, r.entry, conversations)),
+      ],
+      confidence: "MEDIUM",
+      pathDescription: `${seeker.person} → ${seeker.entry.relation} → ${seeker.entry.topic} ↔ ${uniquePeople.join(", ")}`,
+      conversationIds: conversations.map((c) => c.id),
+      approved: true,
+      draftIntro: `Hi ${seeker.person} — you mentioned looking for ${seeker.entry.topic}.
+
+I recently spoke with ${uniquePeople.join(" and ")}, who seem relevant. Worth a group intro?`,
+      highlightPath: buildHighlightPath(
+        graph,
+        [seeker.person, ...uniquePeople],
+        [seeker.entry.topic, ...related.slice(0, 2).map((r) => r.entry.topic)],
+      ),
+    });
   }
 
   return sideQuests;
-}
-
-function buildHighlightPath(
-  graph: GraphData,
-  people: string[],
-  topics: string[],
-): GraphData {
-  const labels = new Set([...people, ...topics]);
-  const nodes = graph.nodes.filter((n) => labels.has(n.label));
-  const nodeIds = new Set(nodes.map((n) => n.id));
-  const links = graph.links.filter(
-    (l) => nodeIds.has(l.source) && nodeIds.has(l.target),
-  );
-  return { nodes, links };
 }

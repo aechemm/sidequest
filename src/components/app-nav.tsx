@@ -5,8 +5,8 @@ const LINKS = [
   { href: "/conversations", label: "Conversations" },
   { href: "/graph", label: "Graph" },
   { href: "/sidequests", label: "SideQuests" },
-  { href: "/agents", label: "Agents" },
-  { href: "/plaud", label: "Plaud Device" },
+  { href: "/agents", label: "Activity" },
+  { href: "/plaud", label: "Plaud" },
 ] as const;
 
 interface AppNavProps {

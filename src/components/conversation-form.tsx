@@ -41,7 +41,7 @@ export function ConversationForm({ onSubmit, loading }: ConversationFormProps) {
       </CardHeader>
       <CardContent className="space-y-3">
         <Input
-          placeholder="Title (e.g. Alice @ Crusoe booth)"
+          placeholder="Title (e.g. Chat with Jordan at the booth)"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
@@ -59,13 +59,15 @@ export function ConversationForm({ onSubmit, loading }: ConversationFormProps) {
         </div>
         <textarea
           className="min-h-[120px] w-full rounded-md border bg-background px-3 py-2 text-sm"
-          placeholder={'Alice: We built an inference platform...\nBob: Our hospital can\'t...'}
+          placeholder={
+            "Jordan: We’re looking for something on-prem…\nYou: Interesting — I met someone building that…"
+          }
           value={transcript}
           onChange={(e) => setTranscript(e.target.value)}
         />
         <Button disabled={loading || !title.trim() || !transcript.trim()} onClick={handleSubmit}>
           <Plus className="size-4" />
-          Process Conversation
+          Process conversation
         </Button>
       </CardContent>
     </Card>

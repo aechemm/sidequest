@@ -129,7 +129,7 @@ export async function syncPlaudAccount(): Promise<SyncResult> {
   const processed: SyncResult["processed"] = [];
   const skipped: string[] = [];
 
-  events.push({ stage: "auth", message: "Checking Plaud CLI authentication…" });
+  events.push({ stage: "auth", message: "Checking Plaud account…" });
   const auth = await plaudAuthStatus();
   if (!auth.ok) {
     return {
@@ -141,7 +141,7 @@ export async function syncPlaudAccount(): Promise<SyncResult> {
         {
           stage: "error",
           message:
-            "Not signed in. In the cloud Desktop terminal run: npx plaud login",
+            "Plaud account not connected. Finish sign-in on the Plaud page first.",
         },
       ],
       newRecordings: [],
@@ -154,7 +154,7 @@ export async function syncPlaudAccount(): Promise<SyncResult> {
 
   events.push({
     stage: "listing",
-    message: "Listing today’s / recent Plaud recordings…",
+    message: "Looking for recent recordings…",
   });
 
   let recordings: PlaudRecording[];
@@ -178,7 +178,7 @@ export async function syncPlaudAccount(): Promise<SyncResult> {
   const already = await loadProcessedPlaudIds();
   const unprocessed = recordings.filter((r) => !already.has(r.id));
 
-  // Newest first (CLI already returns newest-first); skip long samples that timeout sync.
+  // Newest first; skip very long recordings that time out during sync.
   const eligible = unprocessed.filter((r) => {
     const seconds = durationToSeconds(r.duration);
     if (seconds > MAX_DURATION_SECONDS) {
@@ -201,7 +201,7 @@ export async function syncPlaudAccount(): Promise<SyncResult> {
   if (eligible.length > MAX_PER_SYNC) {
     events.push({
       stage: "listing",
-      message: `Processing ${MAX_PER_SYNC} newest short recordings this sync (${eligible.length - MAX_PER_SYNC} left for next sync).`,
+      message: `Syncing ${MAX_PER_SYNC} newest recordings now (${eligible.length - MAX_PER_SYNC} left for next sync).`,
     });
   }
 
@@ -210,10 +210,10 @@ export async function syncPlaudAccount(): Promise<SyncResult> {
       stage: "complete",
       message:
         recordings.length === 0
-          ? "No Plaud recordings found for today/recent. Record on the device, sync in the Plaud App, then Sync again."
+          ? "No recent recordings found. Record on your Plaud, wait for the transcript in the Plaud app, then sync again."
           : unprocessed.length === 0
-            ? `Found ${recordings.length} recording(s) — all already processed.`
-            : `Found ${recordings.length} recording(s), but none were short enough to sync automatically (skipped long samples).`,
+            ? `Found ${recordings.length} recording${recordings.length === 1 ? "" : "s"} — all already imported.`
+            : `Found ${recordings.length} recording${recordings.length === 1 ? "" : "s"}, but none were short enough to sync automatically.`,
     });
     return {
       ok: true,
@@ -230,7 +230,7 @@ export async function syncPlaudAccount(): Promise<SyncResult> {
 
   events.push({
     stage: "listing",
-    message: `Found ${recordings.length} today · syncing ${fresh.length} new short recording(s)…`,
+    message: `Found ${recordings.length} recent · syncing ${fresh.length} new recording${fresh.length === 1 ? "" : "s"}…`,
   });
 
   const conversations: Conversation[] = [];
@@ -238,7 +238,7 @@ export async function syncPlaudAccount(): Promise<SyncResult> {
   for (const recording of fresh) {
     events.push({
       stage: "detected",
-      message: `New Plaud recording detected: ${recording.name}`,
+      message: `New recording: ${recording.name}`,
       recordingId: recording.id,
       recordingName: recording.name,
     });
@@ -246,7 +246,7 @@ export async function syncPlaudAccount(): Promise<SyncResult> {
     try {
       events.push({
         stage: "transcript",
-        message: "Retrieving transcript…",
+        message: "Pulling transcript…",
         recordingId: recording.id,
       });
       const transcript = await getTranscriptText(recording.id);
@@ -254,7 +254,7 @@ export async function syncPlaudAccount(): Promise<SyncResult> {
         skipped.push(recording.id);
         events.push({
           stage: "error",
-          message: `No transcript yet for ${recording.name} — wait for Plaud App to finish processing, then sync again.`,
+          message: `No transcript yet for ${recording.name} — wait for the Plaud app to finish, then sync again.`,
           recordingId: recording.id,
         });
         continue;
@@ -270,14 +270,14 @@ export async function syncPlaudAccount(): Promise<SyncResult> {
 
       events.push({
         stage: "extracting",
-        message: "Extracting knowledge (Crusoe)…",
+        message: "Extracting people and topics…",
         recordingId: recording.id,
       });
       await ingestConversation(conversation);
 
       events.push({
         stage: "graph",
-        message: "Updating Neo4j graph…",
+        message: "Updating relationship graph…",
         recordingId: recording.id,
       });
 
@@ -302,7 +302,7 @@ export async function syncPlaudAccount(): Promise<SyncResult> {
 
   events.push({
     stage: "discovering",
-    message: "Searching for cross-conversation SideQuests…",
+    message: "Looking for introductions across conversations…",
   });
 
   const stored = await import("@/lib/conversation-store").then((m) =>
@@ -314,8 +314,8 @@ export async function syncPlaudAccount(): Promise<SyncResult> {
     stage: "complete",
     message:
       discovery.sideQuests.length > 0
-        ? `SideQuest discovered — ${discovery.sideQuests.length} connection(s) from ${processed.length} new recording(s).`
-        : `Processed ${processed.length} recording(s). Add more conversations to discover connections.`,
+        ? `Found ${discovery.sideQuests.length} introduction${discovery.sideQuests.length === 1 ? "" : "s"} from ${processed.length} new recording${processed.length === 1 ? "" : "s"}.`
+        : `Imported ${processed.length} recording${processed.length === 1 ? "" : "s"}. Add a few more chats to surface introductions.`,
   });
 
   return {

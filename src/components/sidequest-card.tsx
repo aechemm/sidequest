@@ -7,7 +7,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { SideQuest } from "@/lib/types";
-import { CheckCircle2, Sparkles } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 
 interface SideQuestCardProps {
@@ -34,11 +34,10 @@ export function SideQuestCard({
           <div className="space-y-1">
             {featured && (
               <p className="text-xs font-semibold uppercase tracking-wider text-amber-500">
-                SideQuest Discovered
+                Suggested introduction
               </p>
             )}
-            <CardTitle className="flex items-center gap-2 text-lg">
-              {!featured && <Sparkles className="size-5 text-amber-500" />}
+            <CardTitle className="text-lg">
               {sideQuest.people.join(" ↔ ")}
             </CardTitle>
             <CardDescription className="text-base text-foreground/90">
@@ -49,10 +48,10 @@ export function SideQuestCard({
             {sideQuest.approved && (
               <Badge className="gap-1">
                 <CheckCircle2 className="size-3" />
-                APPROVED
+                Verified
               </Badge>
             )}
-            <Badge variant="outline">Confidence: {sideQuest.confidence}</Badge>
+            <Badge variant="outline">{sideQuest.confidence} confidence</Badge>
           </div>
         </div>
       </CardHeader>
@@ -60,7 +59,7 @@ export function SideQuestCard({
         {sideQuest.evidence.length > 0 && (
           <div>
             <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">
-              Evidence
+              From your conversations
             </p>
             <ul className="space-y-1 text-sm">
               {sideQuest.evidence.map((item) => (
@@ -73,35 +72,29 @@ export function SideQuestCard({
           </div>
         )}
 
-        <div className="flex flex-wrap gap-2">
-          {sideQuest.bonusPeople?.map((p) => (
-            <Badge key={p} variant="outline">
-              + {p}
-            </Badge>
-          ))}
-        </div>
-
-        <p className="rounded-md bg-muted/40 p-2 font-mono text-xs text-muted-foreground">
-          {sideQuest.pathDescription}
-        </p>
+        {sideQuest.bonusPeople && sideQuest.bonusPeople.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {sideQuest.bonusPeople.map((p) => (
+              <Badge key={p} variant="outline">
+                Also: {p}
+              </Badge>
+            ))}
+          </div>
+        )}
 
         <Link
           href={`/graph?quest=${sideQuest.id}`}
           className="inline-flex h-8 items-center rounded-lg border border-border px-3 text-sm font-medium hover:bg-muted"
         >
-          Why? — view cross-conversation path
+          Why this match?
         </Link>
 
         <details className="group rounded-lg border border-border bg-muted/20 p-3">
           <summary className="cursor-pointer text-sm font-medium">
-            Draft Introduction — click to expand
+            Draft introduction
           </summary>
           <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed">
             {sideQuest.draftIntro}
-          </p>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Select the text above to copy, or use your browser&apos;s copy
-            shortcut.
           </p>
         </details>
       </CardContent>

@@ -1,6 +1,5 @@
 import { AppHeader } from "@/components/app-header";
 import { AppNav } from "@/components/app-nav";
-import { getAppState } from "@/lib/demo-state";
 import { ingestConversation, runDiscovery } from "@/lib/pipeline";
 import { pollPlaudTranscription } from "@/lib/plaud";
 import type { Metadata } from "next";
@@ -20,7 +19,7 @@ export async function generateMetadata({
   if (!id) return { title: "Transcribing…" };
   const nextUrl = `/conversations/upload/status?id=${encodeURIComponent(id)}&title=${encodeURIComponent(title ?? "")}&attempt=${n + 1}`;
   return {
-    title: "Plaud transcribing…",
+    title: "Transcribing…",
     other: {
       refresh: `3;url=${nextUrl}`,
     },
@@ -28,7 +27,6 @@ export async function generateMetadata({
 }
 
 export default async function UploadStatusPage({ searchParams }: StatusPageProps) {
-  const state = await getAppState();
   const { id, title, attempt } = await searchParams;
   const n = Number(attempt ?? "0");
 
@@ -42,7 +40,7 @@ export default async function UploadStatusPage({ searchParams }: StatusPageProps
     redirect(
       "/conversations/upload?error=" +
         encodeURIComponent(
-          "Timed out — paste the transcript from the Plaud App instead",
+          "Transcription is taking longer than expected — paste the transcript instead.",
         ),
     );
   }
@@ -52,7 +50,7 @@ export default async function UploadStatusPage({ searchParams }: StatusPageProps
   if (result.status === "FAILED") {
     redirect(
       "/conversations/upload?error=" +
-        encodeURIComponent("Plaud transcription failed"),
+        encodeURIComponent("Transcription failed"),
     );
   }
 
@@ -74,14 +72,13 @@ export default async function UploadStatusPage({ searchParams }: StatusPageProps
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6">
-      <AppHeader services={state.services} />
+      <AppHeader />
       <AppNav active="/conversations" />
       <div className="mx-auto max-w-md space-y-3 py-12 text-center">
-        <h2 className="text-xl font-bold">Plaud is transcribing…</h2>
+        <h2 className="text-xl font-bold">Transcribing your recording…</h2>
         <p className="text-sm text-muted-foreground">
-          Attempt {n + 1} of 40. This page refreshes every 3 seconds.
+          This usually takes under a minute. The page refreshes automatically.
         </p>
-        <p className="font-mono text-xs text-muted-foreground">{id}</p>
         <a href={nextUrl} className="text-sm text-amber-500 underline">
           Refresh now
         </a>

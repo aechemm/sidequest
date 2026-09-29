@@ -21,6 +21,6 @@ sleep 1
 
 echo "Starting reliable Plaud OAuth listener..."
 echo "If Authorize ends on localhost error, paste the callback URL at:"
-echo "  https://stockholm-blocked-jumping-kit.trycloudflare.com/plaud/finish-login"
+echo "  https://pulled-amended-heating-categories.trycloudflare.com/plaud/finish-login"
 echo
 exec node scripts/plaud-oauth-server.mjs

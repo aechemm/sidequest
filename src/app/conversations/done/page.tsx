@@ -1,6 +1,5 @@
 import { AppHeader } from "@/components/app-header";
 import { AppNav } from "@/components/app-nav";
-import { getAppState } from "@/lib/demo-state";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -12,34 +11,33 @@ interface DonePageProps {
 export default async function ConversationDonePage({
   searchParams,
 }: DonePageProps) {
-  const state = await getAppState();
   const { title, quests, top } = await searchParams;
   const questCount = Number(quests ?? "0");
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6">
-      <AppHeader services={state.services} />
+      <AppHeader />
       <AppNav active="/conversations" />
 
       <div className="mx-auto max-w-lg space-y-6 py-8 text-center">
-        <h2 className="text-2xl font-bold">Conversation processed</h2>
+        <h2 className="text-2xl font-bold">Conversation added</h2>
         {title && (
           <p className="text-muted-foreground">
-            Ingested:{" "}
+            Processed:{" "}
             <span className="text-foreground">{decodeURIComponent(title)}</span>
           </p>
         )}
         {questCount > 0 ? (
           <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4">
-            <p className="font-medium text-amber-500">SideQuest discovered</p>
+            <p className="font-medium text-amber-500">Introduction found</p>
             <p className="mt-1">
               {top ? decodeURIComponent(top) : `${questCount} connection(s)`}
             </p>
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">
-            No cross-conversation connections yet — add more conversations from
-            different chats at the event.
+            No introductions yet — add a few more conversations so SideQuest can
+            connect the dots.
           </p>
         )}
         <div className="flex flex-wrap justify-center gap-3">

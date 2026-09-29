@@ -1,7 +1,6 @@
 import { AppHeader } from "@/components/app-header";
 import { AppNav } from "@/components/app-nav";
 import { SideQuestCard } from "@/components/sidequest-card";
-import { getAppState } from "@/lib/demo-state";
 import type { SyncEvent, SyncResult } from "@/lib/plaud-sync";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
@@ -22,15 +21,15 @@ interface SyncPageProps {
 }
 
 const STAGE_LABEL: Record<string, string> = {
-  auth: "🔐 Auth",
-  listing: "📂 Listing recordings",
-  detected: "🎙 New Plaud recording detected",
-  transcript: "📝 Transcript retrieved",
-  extracting: "🧠 Extracting knowledge",
-  graph: "🕸 Updating graph",
-  discovering: "🔎 Searching for connections",
-  complete: "✨ Complete",
-  error: "⚠ Issue",
+  auth: "Checking account",
+  listing: "Looking for recordings",
+  detected: "New conversation found",
+  transcript: "Transcript ready",
+  extracting: "Extracting people & topics",
+  graph: "Updating graph",
+  discovering: "Finding introductions",
+  complete: "Done",
+  error: "Needs attention",
   idle: "…",
 };
 
@@ -60,7 +59,6 @@ function decodeResult(data?: string): SyncResult | null {
 export default async function PlaudSyncResultPage({
   searchParams,
 }: SyncPageProps) {
-  const state = await getAppState();
   const params = await searchParams;
   const result =
     decodeResult(params.data) ??
@@ -70,73 +68,76 @@ export default async function PlaudSyncResultPage({
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6">
-      <AppHeader services={state.services} />
+      <AppHeader />
       <AppNav active="/plaud" />
 
       <div className="space-y-2">
-        <h2 className="text-xl font-semibold">Plaud sync result</h2>
+        <h2 className="text-xl font-semibold">Sync complete</h2>
         <p className="text-sm text-muted-foreground">
-          Device → Plaud App/account → SideQuest ingest (via Plaud CLI).
+          Here’s what SideQuest pulled from your Plaud account.
         </p>
       </div>
 
       {!result && (
-        <div className="rounded-xl border p-4 text-sm">
-          <p>
-            Auth: {params.auth === "1" ? "ok" : "needed"} · Processed:{" "}
-            {params.processed ?? "0"} · SideQuests: {params.quests ?? "0"}
-          </p>
-          {params.error && (
-            <p className="mt-2 text-red-400">{decodeURIComponent(params.error)}</p>
-          )}
-          <p className="mt-2 text-muted-foreground">
-            No detailed sync log found — run Sync Plaud again from /plaud.
-          </p>
+        <div className="rounded-xl border p-4 text-sm text-muted-foreground">
+          No sync result to show yet.{" "}
+          <Link href="/plaud" className="text-amber-500 underline">
+            Sync from Plaud
+          </Link>
+          .
         </div>
       )}
 
       {result && (
         <>
-          <div className="rounded-xl border border-border p-4">
-            <p className="text-sm">
-              {result.authenticated ? (
-                <span className="text-amber-500">Plaud account connected</span>
-              ) : (
-                <span className="text-red-400">Not signed in</span>
-              )}
-              {" · "}
-              New: {result.processed.length} · Skipped: {result.skipped.length} ·
-              SideQuests: {result.sideQuests.length}
+          <div className="rounded-xl border border-border p-4 text-sm">
+            <p>
+              <span className="text-amber-500">
+                {result.processed.length} new conversation
+                {result.processed.length === 1 ? "" : "s"}
+              </span>
+              {result.sideQuests.length > 0
+                ? ` · ${result.sideQuests.length} introduction${result.sideQuests.length === 1 ? "" : "s"} found`
+                : ""}
             </p>
             {result.processed.length > 0 && (
-              <ul className="mt-2 list-disc pl-5 text-sm text-muted-foreground">
+              <ul className="mt-2 list-disc pl-5 text-muted-foreground">
                 {result.processed.map((p) => (
-                  <li key={p.id}>
-                    {p.name}{" "}
-                    <span className="font-mono text-xs">({p.id.slice(0, 12)}…)</span>
-                  </li>
+                  <li key={p.id}>{p.name}</li>
                 ))}
               </ul>
+            )}
+            {result.processed.length === 0 && (
+              <p className="mt-2 text-muted-foreground">
+                Nothing new to import. Record in Plaud, wait for the transcript,
+                then sync again.
+              </p>
             )}
           </div>
 
           <ol className="space-y-2">
-            {events.map((event, i) => (
-              <li
-                key={`${event.stage}-${i}`}
-                className="rounded-lg border border-border bg-muted/20 px-3 py-2 text-sm"
-              >
-                <span className="font-medium">
-                  {STAGE_LABEL[event.stage] ?? event.stage}
-                </span>
-                <span className="text-muted-foreground"> — {event.message}</span>
-              </li>
-            ))}
+            {events
+              .filter((e) => e.stage !== "error" || result.processed.length === 0)
+              .slice(-8)
+              .map((event, i) => (
+                <li
+                  key={`${event.stage}-${i}`}
+                  className="rounded-lg border border-border bg-muted/20 px-3 py-2 text-sm"
+                >
+                  <span className="font-medium">
+                    {STAGE_LABEL[event.stage] ?? event.stage}
+                  </span>
+                  <span className="text-muted-foreground">
+                    {" "}
+                    — {event.message}
+                  </span>
+                </li>
+              ))}
           </ol>
 
           {result.sideQuests.length > 0 && (
             <div className="space-y-4">
-              <h3 className="font-semibold">SideQuests from sync</h3>
+              <h3 className="font-semibold">Introductions found</h3>
               {result.sideQuests.map((sq) => (
                 <SideQuestCard key={sq.id} sideQuest={sq} />
               ))}
@@ -153,10 +154,10 @@ export default async function PlaudSyncResultPage({
           View conversations
         </Link>
         <Link
-          href="/plaud"
+          href="/sidequests"
           className="inline-flex h-9 items-center rounded-lg border px-4 text-sm hover:bg-muted"
         >
-          Sync again
+          View SideQuests
         </Link>
         <Link
           href="/"

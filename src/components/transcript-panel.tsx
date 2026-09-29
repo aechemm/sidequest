@@ -2,6 +2,13 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Conversation } from "@/lib/types";
 
+const SOURCE_LABEL: Record<Conversation["source"], string> = {
+  plaud: "Plaud",
+  upload: "Upload",
+  manual: "Notes",
+  mock: "Sample",
+};
+
 interface TranscriptPanelProps {
   conversation: Conversation | null;
 }
@@ -14,7 +21,7 @@ export function TranscriptPanel({ conversation }: TranscriptPanelProps) {
           <CardTitle className="text-base">Conversation</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
-          Upload audio or run the 3-conversation demo.
+          Sync from Plaud or add a conversation to see it here.
         </CardContent>
       </Card>
     );
@@ -24,7 +31,9 @@ export function TranscriptPanel({ conversation }: TranscriptPanelProps) {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-2">
         <CardTitle className="text-base">{conversation.title}</CardTitle>
-        <Badge variant="secondary">{conversation.source}</Badge>
+        <Badge variant="secondary">
+          {SOURCE_LABEL[conversation.source] ?? conversation.source}
+        </Badge>
       </CardHeader>
       <CardContent className="space-y-3">
         {conversation.segments.map((segment) => (
@@ -36,9 +45,11 @@ export function TranscriptPanel({ conversation }: TranscriptPanelProps) {
               <span className="font-medium text-foreground">
                 {segment.speaker ?? "Speaker"}
               </span>
-              <span>
-                {segment.start.toFixed(1)}s – {segment.end.toFixed(1)}s
-              </span>
+              {segment.end > segment.start && (
+                <span>
+                  {segment.start.toFixed(1)}s – {segment.end.toFixed(1)}s
+                </span>
+              )}
             </div>
             <p>{segment.text}</p>
           </div>

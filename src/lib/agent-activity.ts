@@ -2,6 +2,15 @@ import type { AgentActivityEvent, AgentName } from "./types";
 
 let counter = 0;
 
+/** Friendly labels shown in the Activity UI */
+export const AGENT_LABELS: Record<AgentName, string> = {
+  ExtractorAgent: "Extract",
+  GraphAgent: "Graph",
+  ScoutAgent: "Discover",
+  ConnectorAgent: "Connect",
+  CriticAgent: "Verify",
+};
+
 export function agentEvent(
   agent: AgentName,
   message: string,
@@ -17,11 +26,14 @@ export function agentEvent(
   };
 }
 
-export function extractionEvents(count: number, relationships: number): AgentActivityEvent[] {
+export function extractionEvents(
+  count: number,
+  relationships: number,
+): AgentActivityEvent[] {
   return [
     agentEvent(
       "ExtractorAgent",
-      `${count} entities and ${relationships} relationships extracted`,
+      `Found ${count} details and ${relationships} relationships`,
       "success",
     ),
   ];
@@ -29,27 +41,34 @@ export function extractionEvents(count: number, relationships: number): AgentAct
 
 export function graphEvents(): AgentActivityEvent[] {
   return [
-    agentEvent("GraphAgent", "Knowledge graph updated", "success"),
+    agentEvent("GraphAgent", "Updated relationship graph", "success"),
   ];
 }
 
 export function scoutEvents(): AgentActivityEvent[] {
   return [
-    agentEvent("ScoutAgent", "Potential connection discovered across conversations", "success"),
+    agentEvent(
+      "ScoutAgent",
+      "Looking across conversations for introductions",
+      "success",
+    ),
   ];
 }
 
 export function connectorEvents(title: string): AgentActivityEvent[] {
   return [
-    agentEvent("ConnectorAgent", `Connection rationale generated: ${title}`, "success"),
+    agentEvent("ConnectorAgent", `Drafted rationale: ${title}`, "success"),
   ];
 }
 
-export function criticEvents(approved: boolean, reason: string): AgentActivityEvent[] {
+export function criticEvents(
+  approved: boolean,
+  reason: string,
+): AgentActivityEvent[] {
   return [
     agentEvent(
       "CriticAgent",
-      approved ? `APPROVED — ${reason}` : `BLOCKED — ${reason}`,
+      approved ? `Verified — ${reason}` : `Held back — ${reason}`,
       approved ? "success" : "blocked",
     ),
   ];

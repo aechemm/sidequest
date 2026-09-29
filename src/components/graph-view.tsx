@@ -35,7 +35,7 @@ export function GraphView({ data, onNodeClick }: GraphViewProps) {
   if (data.nodes.length === 0) {
     return (
       <div className="flex h-[480px] items-center justify-center rounded-xl border border-dashed border-border bg-muted/20 text-sm text-muted-foreground">
-        Graph empty — run the demo or add conversations.
+        Graph is empty — sync or add conversations to build it.
       </div>
     );
   }

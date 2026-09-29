@@ -1,6 +1,6 @@
 import type { Conversation } from "./types";
 
-/** Parse "Alice: hello\nBob: hi" into segments */
+/** Parse "Name: hello\nOther: hi" into segments */
 export function parseManualTranscript(
   title: string,
   participant: string,

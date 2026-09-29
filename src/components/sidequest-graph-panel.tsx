@@ -10,7 +10,6 @@ interface SideQuestGraphPanelProps {
   data: GraphData;
 }
 
-/** Server-safe graph view — works without client JavaScript */
 export function SideQuestGraphPanel({ data }: SideQuestGraphPanelProps) {
   const people = data.nodes.filter((n) => n.type === "Person");
   const topics = data.nodes.filter((n) => n.type === "Topic");
@@ -18,7 +17,7 @@ export function SideQuestGraphPanel({ data }: SideQuestGraphPanelProps) {
   return (
     <div className="space-y-4 rounded-xl border border-border bg-[#020617] p-6">
       <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-        Cross-conversation path
+        How they connect
       </p>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -62,8 +61,8 @@ export function SideQuestGraphPanel({ data }: SideQuestGraphPanelProps) {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        No single conversation contains the full picture — only the graph across
-        all of them does.
+        The match comes from patterns across conversations — not from any one chat
+        alone.
       </p>
     </div>
   );

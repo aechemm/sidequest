@@ -85,7 +85,7 @@ export async function writeEntitiesToGraph(
 
 export async function fetchGraph(): Promise<GraphData> {
   const d = getNeo4jDriver();
-  if (!d) return getMockGraph();
+  if (!d) return { nodes: [], links: [] };
 
   const session = d.session();
   try {

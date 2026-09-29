@@ -4,7 +4,7 @@ import { AppNav } from "@/components/app-nav";
 import { PipelineStatusCard } from "@/components/pipeline-status";
 import { SideQuestCard } from "@/components/sidequest-card";
 import { StatsGrid } from "@/components/stats-grid";
-import { getAppState } from "@/lib/demo-state";
+import { getAppState } from "@/lib/app-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 
@@ -16,7 +16,7 @@ export default async function HomePage() {
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6">
-      <AppHeader services={state.services} />
+      <AppHeader />
       <AppNav active="/" />
 
       <div className="space-y-6">
@@ -24,12 +24,26 @@ export default async function HomePage() {
           <SideQuestCard sideQuest={featured} featured highlighted />
         ) : (
           <Card className="border-dashed">
-            <CardContent className="py-12 text-center text-muted-foreground">
-              No SideQuest yet —{" "}
-              <Link href="/conversations/add" className="text-amber-500 underline">
-                add conversations
-              </Link>
-              .
+            <CardContent className="flex flex-col items-center gap-4 py-14 text-center">
+              <p className="text-lg font-medium">No introductions yet</p>
+              <p className="max-w-md text-sm text-muted-foreground">
+                Sync conversations from Plaud or add a few chats. SideQuest looks
+                across them for people who should meet.
+              </p>
+              <div className="flex flex-wrap justify-center gap-3">
+                <Link
+                  href="/plaud"
+                  className="inline-flex h-9 items-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground"
+                >
+                  Connect Plaud
+                </Link>
+                <Link
+                  href="/conversations/add"
+                  className="inline-flex h-9 items-center rounded-lg border px-4 text-sm hover:bg-muted"
+                >
+                  Add a conversation
+                </Link>
+              </div>
             </CardContent>
           </Card>
         )}
@@ -43,26 +57,45 @@ export default async function HomePage() {
               <CardTitle className="text-base">Recent conversations</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              {state.conversations.map((c) => (
-                <Link
-                  key={c.id}
-                  href={`/conversations#${c.id}`}
-                  className="block w-full rounded-lg border p-3 text-left text-sm hover:bg-muted/40"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium">{c.participant ?? c.title}</span>
-                    <span className="rounded border px-1.5 py-0.5 text-xs">
-                      {c.processingStatus ?? "pending"}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {c.company ?? c.title}
-                  </p>
-                  <p className="mt-1 line-clamp-2 text-xs">
-                    {c.summary ?? c.text}
-                  </p>
-                </Link>
-              ))}
+              {state.conversations.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Nothing synced yet.{" "}
+                  <Link href="/plaud" className="text-amber-500 underline">
+                    Pull from Plaud
+                  </Link>{" "}
+                  or{" "}
+                  <Link
+                    href="/conversations/add"
+                    className="text-amber-500 underline"
+                  >
+                    add one manually
+                  </Link>
+                  .
+                </p>
+              ) : (
+                state.conversations.map((c) => (
+                  <Link
+                    key={c.id}
+                    href={`/conversations#${c.id}`}
+                    className="block w-full rounded-lg border p-3 text-left text-sm hover:bg-muted/40"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium">
+                        {c.participant ?? c.title}
+                      </span>
+                      <span className="rounded border px-1.5 py-0.5 text-xs capitalize text-muted-foreground">
+                        {(c.processingStatus ?? "ready").replace(/_/g, " ")}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {c.company ?? c.title}
+                    </p>
+                    <p className="mt-1 line-clamp-2 text-xs">
+                      {c.summary ?? c.text}
+                    </p>
+                  </Link>
+                ))
+              )}
             </CardContent>
           </Card>
           <AgentActivityPanel events={state.activities} />

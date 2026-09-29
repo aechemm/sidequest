@@ -1,7 +1,7 @@
 import { AppHeader } from "@/components/app-header";
 import { AppNav } from "@/components/app-nav";
 import { SideQuestCard } from "@/components/sidequest-card";
-import { getAppState } from "@/lib/demo-state";
+import { getAppState } from "@/lib/app-state";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -11,25 +11,24 @@ export default async function SideQuestsPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6">
-      <AppHeader services={state.services} />
+      <AppHeader />
       <AppNav active="/sidequests" />
 
       <div className="space-y-2">
-        <h2 className="text-xl font-semibold">Approved SideQuests</h2>
+        <h2 className="text-xl font-semibold">SideQuests</h2>
         <p className="text-sm text-muted-foreground">
-          Critic-approved introductions. Click Why? for the graph path, or expand
-          Draft Introduction for the email.
+          Suggested introductions, verified against what was actually said.
         </p>
       </div>
 
       {state.sideQuests.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No SideQuests yet —{" "}
-          <Link href="/conversations/add" className="text-amber-500 underline">
-            add conversations
+        <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
+          No introductions yet. Sync a few conversations from different chats,
+          then check back.{" "}
+          <Link href="/plaud" className="text-amber-500 underline">
+            Sync from Plaud
           </Link>
-          .
-        </p>
+        </div>
       ) : (
         <div className="space-y-4">
           {state.sideQuests.map((sq) => (

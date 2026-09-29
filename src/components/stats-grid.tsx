@@ -10,7 +10,7 @@ export function StatsGrid({ stats }: StatsGridProps) {
     { label: "People", value: stats.people },
     { label: "Companies", value: stats.companies },
     { label: "Conversations", value: stats.conversations },
-    { label: "Connections discovered", value: stats.connectionsDiscovered },
+    { label: "Introductions", value: stats.connectionsDiscovered },
   ];
 
   return (

@@ -2,7 +2,7 @@ import { AgentActivityPanel } from "@/components/agent-activity-panel";
 import { AppHeader } from "@/components/app-header";
 import { AppNav } from "@/components/app-nav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getAppState } from "@/lib/demo-state";
+import { getAppState } from "@/lib/app-state";
 
 export const dynamic = "force-dynamic";
 
@@ -11,37 +11,37 @@ export default async function AgentsPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6">
-      <AppHeader services={state.services} />
+      <AppHeader />
       <AppNav active="/agents" />
+
+      <div className="space-y-2">
+        <h2 className="text-xl font-semibold">Activity</h2>
+        <p className="text-sm text-muted-foreground">
+          What SideQuest did with your conversations — extract details, update
+          the graph, find introductions, and verify them.
+        </p>
+      </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">BAND coordination chain</CardTitle>
+          <CardTitle className="text-base">How it works</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3 text-sm text-muted-foreground">
-          <p className="font-mono">
-            ExtractorAgent → GraphAgent → ScoutAgent → ConnectorAgent → CriticAgent
-          </p>
+        <CardContent className="space-y-2 text-sm text-muted-foreground">
           <p>
-            Critic can BLOCK — blocked SideQuests never appear in the UI.
+            Every conversation is checked for people, companies, problems, and
+            offers. SideQuest then looks across your whole network for matches —
+            and only surfaces introductions it can support with evidence.
           </p>
-          {state.bandRoomUrl ? (
+          {state.bandRoomUrl && (
             <a
               href={state.bandRoomUrl}
               target="_blank"
               rel="noreferrer"
               className="inline-flex h-9 items-center rounded-lg border px-4 text-sm text-foreground hover:bg-muted"
             >
-              Open live Band room
+              Open live workspace
             </a>
-          ) : (
-            <p>Band room URL not configured.</p>
           )}
-          <p className="text-xs">
-            In Band chat, @mention{" "}
-            <span className="font-semibold text-foreground">@hmorder/extractor</span>{" "}
-            with a transcript — agents hand off automatically.
-          </p>
         </CardContent>
       </Card>
 

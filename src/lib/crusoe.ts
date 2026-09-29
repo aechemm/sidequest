@@ -72,29 +72,30 @@ async function extractEntitiesLive(
 }
 
 function extractEntitiesMock(conversation: Conversation): ExtractedEntity[] {
+  const fallbackPerson =
+    conversation.participant?.trim() ||
+    conversation.segments.find((s) => s.speaker)?.speaker ||
+    "Speaker";
+
   const rules: Array<{
     match: RegExp;
-    person: string;
     relation: ExtractedEntity["relation"];
     topic: string;
   }> = [
     {
-      match: /inference platform.*vpc|vpc/i,
-      person: "Alice",
+      match: /inference platform.*vpc|vpc|provides|we built|we offer|our platform/i,
       relation: "PROVIDES",
-      topic: "Private VPC Inference",
+      topic: "Capability Offer",
     },
     {
-      match: /patient data|on-prem|private ai/i,
-      person: "Bob",
+      match: /patient data|on-prem|private ai|can't send|need|looking for help|problem/i,
       relation: "HAS_PROBLEM",
-      topic: "Private PHI Processing",
+      topic: "Open Need",
     },
     {
-      match: /healthcare ai/i,
-      person: "Charlie",
+      match: /seeking|looking for|accelerator|interested in/i,
       relation: "SEEKS",
-      topic: "Healthcare AI Companies",
+      topic: "Active Search",
     },
   ];
 
@@ -102,7 +103,7 @@ function extractEntitiesMock(conversation: Conversation): ExtractedEntity[] {
   conversation.segments.forEach((segment, index) => {
     for (const rule of rules) {
       if (!rule.match.test(segment.text)) continue;
-      const speaker = segment.speaker ?? rule.person;
+      const speaker = segment.speaker?.trim() || fallbackPerson;
       entities.push({
         id: `ent-${conversation.id}-${index}-${rule.relation}`,
         person: speaker,
@@ -175,7 +176,7 @@ function critiqueSideQuestMock(
   }
   return {
     approved: false,
-    reason: "BLOCKED — connection not supported by recorded conversations.",
+    reason: "Not supported by recorded conversations.",
   };
 }
 

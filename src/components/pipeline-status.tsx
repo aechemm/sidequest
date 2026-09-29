@@ -33,19 +33,19 @@ export function PipelineStatusCard({ status }: PipelineStatusCardProps) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-base">Pipeline</CardTitle>
-        <Badge variant={variant}>{status.stage}</Badge>
+        <CardTitle className="text-base">Progress</CardTitle>
+        <Badge variant={variant}>{status.stage.replace(/_/g, " ")}</Badge>
       </CardHeader>
       <CardContent className="space-y-3">
         <Progress value={progress} />
         <p className="text-sm text-muted-foreground">{status.message}</p>
         <div className="flex gap-4 text-xs text-muted-foreground">
           {status.entitiesExtracted !== undefined && (
-            <span>Entities: {status.entitiesExtracted}</span>
+            <span>Details found: {status.entitiesExtracted}</span>
           )}
           {status.sideQuestsFound !== undefined && (
             <span className="font-medium text-amber-600">
-              SideQuests: {status.sideQuestsFound}
+              Introductions: {status.sideQuestsFound}
             </span>
           )}
         </div>
