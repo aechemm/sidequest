@@ -338,12 +338,6 @@ export function SideQuestShell({ initial }: SideQuestShellProps) {
     }
   };
 
-  const showWhy = (sq: SideQuest) => {
-    setActiveQuestId(sq.id);
-    setHighlightGraph(sq.highlightPath ?? null);
-    setTab("graph");
-  };
-
   const featured = sideQuests[0] ?? null;
   const displayGraph = highlightGraph ?? graph;
 

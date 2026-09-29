@@ -1,8 +1,10 @@
+import { AppHeader } from "@/components/app-header";
+import { AppNav } from "@/components/app-nav";
 import { SideQuestGraphPanel } from "@/components/sidequest-graph-panel";
-import { discoverSideQuests } from "@/lib/discover";
-import { runDemoMock } from "@/lib/pipeline";
-import { DEMO_CONVERSATIONS } from "@/lib/sample-conversations";
+import { getAppState } from "@/lib/demo-state";
 import Link from "next/link";
+
+export const dynamic = "force-dynamic";
 
 interface GraphPageProps {
   searchParams: Promise<{ quest?: string }>;
@@ -10,23 +12,24 @@ interface GraphPageProps {
 
 export default async function GraphPage({ searchParams }: GraphPageProps) {
   const { quest } = await searchParams;
-  const demo = await runDemoMock(DEMO_CONVERSATIONS);
-  const sideQuests = discoverSideQuests(DEMO_CONVERSATIONS, demo.graph);
+  const state = await getAppState();
   const active =
-    sideQuests.find((sq) => sq.id === quest) ?? sideQuests[0] ?? null;
-  const highlight = active?.highlightPath ?? demo.graph;
+    state.sideQuests.find((sq) => sq.id === quest) ?? state.sideQuests[0] ?? null;
+  const highlight = active?.highlightPath ?? state.graph;
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8">
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6">
+      <AppHeader services={state.services} />
+      <AppNav active="/graph" />
+
       <div className="space-y-2">
-        <Link href="/" className="text-sm text-amber-500 hover:underline">
-          ← Back to SideQuest
-        </Link>
-        <h1 className="text-2xl font-bold">Why this connection?</h1>
-        {active && (
+        <h2 className="text-xl font-semibold">Why this connection?</h2>
+        {active ? (
           <p className="text-muted-foreground">
             {active.people.join(" ↔ ")} — {active.reason}
           </p>
+        ) : (
+          <p className="text-muted-foreground">Relationship graph across conversations.</p>
         )}
       </div>
 
@@ -38,9 +41,9 @@ export default async function GraphPage({ searchParams }: GraphPageProps) {
 
       <SideQuestGraphPanel data={highlight} />
 
-      {sideQuests.length > 1 && (
+      {state.sideQuests.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {sideQuests.map((sq) => (
+          {state.sideQuests.map((sq) => (
             <Link
               key={sq.id}
               href={`/graph?quest=${sq.id}`}
@@ -55,6 +58,10 @@ export default async function GraphPage({ searchParams }: GraphPageProps) {
           ))}
         </div>
       )}
+
+      <Link href="/sidequests" className="text-sm text-amber-500 hover:underline">
+        ← All SideQuests
+      </Link>
     </div>
   );
 }
