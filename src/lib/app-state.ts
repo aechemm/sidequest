@@ -4,6 +4,12 @@ import {
   saveDiscoveryCache,
 } from "@/lib/discovery-cache";
 import { fetchGraph } from "@/lib/neo4j";
+import {
+  applyAliasesToConversation,
+  applyAliasesToGraph,
+  applyAliasesToSideQuest,
+  loadPersonAliases,
+} from "@/lib/person-aliases";
 import { computeStats, runDiscovery } from "@/lib/pipeline";
 import type {
   AgentActivityEvent,
@@ -36,7 +42,10 @@ const EMPTY_GRAPH: GraphData = { nodes: [], links: [] };
 /** Prevent stampedes when many tabs hit a cold cache at once. */
 let discoveryInFlight: Promise<void> | null = null;
 
-export async function getAppState(): Promise<AppState> {
+export async function getAppState(options?: {
+  applyDisplayAliases?: boolean;
+}): Promise<AppState> {
+  const applyDisplayAliases = options?.applyDisplayAliases !== false;
   const conversations = await loadStoredConversations();
 
   const services = {
@@ -54,44 +63,55 @@ export async function getAppState(): Promise<AppState> {
     graph = EMPTY_GRAPH;
   }
 
+  let sideQuests: SideQuest[] = [];
+  let activities: AgentActivityEvent[] = [];
+  let status: PipelineStatus | null = null;
+  let stats: NetworkStats = {
+    ...EMPTY_STATS,
+    people: graph.nodes.filter((n) => n.type === "Person").length,
+    companies: graph.nodes.filter((n) => n.type === "Company").length,
+  };
+
   if (conversations.length === 0) {
-    return {
-      conversations: [],
-      sideQuests: [],
-      graph,
-      activities: [],
-      stats: {
-        ...EMPTY_STATS,
-        people: graph.nodes.filter((n) => n.type === "Person").length,
-        companies: graph.nodes.filter((n) => n.type === "Company").length,
+    return finalizeState(
+      {
+        conversations: [],
+        sideQuests,
+        graph,
+        activities,
+        stats,
+        status,
+        services,
+        bandRoomUrl,
       },
-      status: null,
-      services,
-      bandRoomUrl,
-    };
+      applyDisplayAliases,
+    );
   }
 
   const cached = await loadDiscoveryCache(conversations);
   if (cached) {
-    return {
-      conversations,
-      sideQuests: cached.sideQuests,
-      graph,
-      activities: cached.activities,
-      stats: {
-        ...cached.stats,
-        conversations: conversations.length,
-        people:
-          cached.stats.people ||
-          graph.nodes.filter((n) => n.type === "Person").length,
-        companies:
-          cached.stats.companies ||
-          graph.nodes.filter((n) => n.type === "Company").length,
+    return finalizeState(
+      {
+        conversations,
+        sideQuests: cached.sideQuests,
+        graph,
+        activities: cached.activities,
+        stats: {
+          ...cached.stats,
+          conversations: conversations.length,
+          people:
+            cached.stats.people ||
+            graph.nodes.filter((n) => n.type === "Person").length,
+          companies:
+            cached.stats.companies ||
+            graph.nodes.filter((n) => n.type === "Company").length,
+        },
+        status: cached.status,
+        services,
+        bandRoomUrl,
       },
-      status: cached.status,
-      services,
-      bandRoomUrl,
-    };
+      applyDisplayAliases,
+    );
   }
 
   if (!discoveryInFlight) {
@@ -111,25 +131,47 @@ export async function getAppState(): Promise<AppState> {
     })();
   }
 
-  // Don't block the page on a multi-minute AI pass — show conversations now.
   void discoveryInFlight;
 
+  return finalizeState(
+    {
+      conversations,
+      sideQuests: [],
+      graph,
+      activities: [],
+      stats: {
+        ...EMPTY_STATS,
+        conversations: conversations.length,
+        people: graph.nodes.filter((n) => n.type === "Person").length,
+        companies: graph.nodes.filter((n) => n.type === "Company").length,
+      },
+      status: {
+        stage: "discovering",
+        message: "Looking for introductions in the background…",
+      },
+      services,
+      bandRoomUrl,
+    },
+    applyDisplayAliases,
+  );
+}
+
+async function finalizeState(
+  state: AppState,
+  applyDisplayAliases: boolean,
+): Promise<AppState> {
+  if (!applyDisplayAliases) return state;
+  const aliases = await loadPersonAliases();
+  if (Object.keys(aliases).length === 0) return state;
+
   return {
-    conversations,
-    sideQuests: [],
-    graph,
-    activities: [],
-    stats: {
-      ...EMPTY_STATS,
-      conversations: conversations.length,
-      people: graph.nodes.filter((n) => n.type === "Person").length,
-      companies: graph.nodes.filter((n) => n.type === "Company").length,
-    },
-    status: {
-      stage: "discovering",
-      message: "Looking for introductions in the background…",
-    },
-    services,
-    bandRoomUrl,
+    ...state,
+    conversations: state.conversations.map((c) =>
+      applyAliasesToConversation(c, aliases),
+    ),
+    sideQuests: state.sideQuests.map((q) =>
+      applyAliasesToSideQuest(q, aliases),
+    ),
+    graph: applyAliasesToGraph(state.graph, aliases),
   };
 }
