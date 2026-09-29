@@ -65,11 +65,15 @@ export default async function PlaudPage() {
               </p>
               <pre className="mt-2 overflow-x-auto rounded bg-background/60 p-2 font-mono text-xs">
 {`cd /workspace
-npx plaud login`}
+npm run plaud:login`}
               </pre>
               <p className="mt-2 text-muted-foreground">
-                Sign in with the <strong className="text-foreground">same Plaud account</strong>{" "}
-                the demo device is paired to. Then come back and press Sync Plaud.
+                Use <code className="font-mono">npm run plaud:login</code> — not bare{" "}
+                <code className="font-mono">npx plaud login</code>. Our Embedded API{" "}
+                <code className="font-mono">PLAUD_CLIENT_ID</code> breaks CLI OAuth (404 after
+                Google login). Sign in with the{" "}
+                <strong className="text-foreground">same Plaud account</strong> the demo device
+                uses, then press Sync Plaud.
               </p>
             </div>
           )}

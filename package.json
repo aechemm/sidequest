@@ -7,9 +7,9 @@
     "build": "next build",
     "start": "next start --port 4318",
     "lint": "eslint",
-    "plaud:login": "plaud login",
-    "plaud:today": "plaud today",
-    "plaud:me": "plaud me"
+    "plaud:login": "bash scripts/plaud-login.sh",
+    "plaud:today": "bash -c 'source scripts/plaud-env.sh && npx plaud today'",
+    "plaud:me": "bash -c 'source scripts/plaud-env.sh && npx plaud me'"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

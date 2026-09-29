@@ -25,6 +25,17 @@ function stripAnsi(text: string): string {
   );
 }
 
+function plaudCliEnv(): NodeJS.ProcessEnv {
+  // SideQuest's Embedded Transcription keys must not override Plaud CLI OAuth client.
+  const env = { ...process.env };
+  delete env.PLAUD_CLIENT_ID;
+  delete env.PLAUD_API_KEY;
+  delete env.PLAUD_CLIENT_SECRET;
+  env.PLAUD_CLI_CLIENT_ID =
+    env.PLAUD_CLI_CLIENT_ID ?? "client_f9e0b214-c11f-434b-8b95-c4497d1feb81";
+  return env;
+}
+
 async function runPlaud(
   args: string[],
 ): Promise<{ stdout: string; stderr: string; code: number }> {
@@ -36,7 +47,7 @@ async function runPlaud(
         cwd: process.cwd(),
         maxBuffer: 10 * 1024 * 1024,
         timeout: 120_000,
-        env: process.env,
+        env: plaudCliEnv(),
       },
     );
     return { stdout, stderr, code: 0 };
