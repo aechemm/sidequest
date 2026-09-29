@@ -53,6 +53,9 @@ export function SideQuestShell() {
   const [loading, setLoading] = useState(false);
   const [services, setServices] = useState<Record<string, boolean>>({});
   const [bandRoomUrl, setBandRoomUrl] = useState<string | null>(null);
+  const [bandKickoffStatus, setBandKickoffStatus] = useState<string | null>(
+    null,
+  );
 
   const refreshGraph = useCallback(async () => {
     const response = await fetch("/api/graph");
@@ -165,6 +168,45 @@ export function SideQuestShell() {
     };
     if (data.conversation) await ingestOne(data.conversation);
     setLoading(false);
+  };
+
+  const kickoffBand = async () => {
+    setBandKickoffStatus("Posting demo conversation to Band…");
+    const conv =
+      conversations[0] ??
+      ({
+        id: "conv-alice",
+        title: "Conversation 1 — Alice @ Crusoe booth",
+        text: "Alice: We built an inference platform that can operate inside a customer's VPC. No data leaves their environment.",
+        segments: [
+          {
+            start: 0,
+            end: 12,
+            speaker: "Alice",
+            text: "We built an inference platform that can operate inside a customer's VPC. No data leaves their environment.",
+          },
+        ],
+      } as Conversation);
+
+    const res = await fetch("/api/band/kickoff", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ transcript: conv, meetingId: conv.id }),
+    });
+    const data = (await res.json()) as {
+      ok?: boolean;
+      message?: string;
+      error?: string;
+      bandRoomUrl?: string | null;
+    };
+    if (data.ok) {
+      setBandKickoffStatus(
+        data.message ?? "Posted — watch your Band SideQuest chat for agent replies.",
+      );
+      if (data.bandRoomUrl) setBandRoomUrl(data.bandRoomUrl);
+    } else {
+      setBandKickoffStatus(data.error ?? "Band kickoff failed");
+    }
   };
 
   const showWhy = (sq: SideQuest) => {
@@ -354,17 +396,37 @@ export function SideQuestShell() {
               <p className="text-xs">
                 Critic can BLOCK — blocked SideQuests never appear in the UI.
               </p>
-              {bandRoomUrl && (
-                <a
-                  href={bandRoomUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className={buttonVariants({ variant: "outline" })}
+              <div className="flex flex-wrap gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={loading}
+                  onClick={() => void kickoffBand()}
                 >
-                  <ExternalLink className="size-4" />
-                  Open live Band room
-                </a>
+                  Send demo convo to Band
+                </Button>
+                {bandRoomUrl && (
+                  <a
+                    href={bandRoomUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={buttonVariants({ variant: "outline" })}
+                  >
+                    <ExternalLink className="size-4" />
+                    Open Band room
+                  </a>
+                )}
+              </div>
+              {bandKickoffStatus && (
+                <p className="pt-2 text-xs text-muted-foreground">
+                  {bandKickoffStatus}
+                </p>
               )}
+              <p className="pt-2 text-xs">
+                Or in Band chat, @mention{" "}
+                <span className="font-semibold">@hmorder/extractor</span> with a
+                transcript — agents chain handoffs automatically.
+              </p>
             </CardContent>
           </Card>
         </TabsContent>

@@ -55,11 +55,21 @@ export function discoverSideQuests(
   if (alice && bob) {
     const aliceTopics = personTopics.get("Alice") ?? [];
     const bobTopics = personTopics.get("Bob") ?? [];
+    const providerRelations = new Set([
+      "PROVIDES",
+      "WORKS_ON",
+      "BUILDS",
+      "OFFERS",
+    ]);
+    const needRelations = new Set(["HAS_PROBLEM", "NEEDS"]);
+    const privateTopic = (label: string) =>
+      /private|vpc|on-prem|phi|patient|inference|data privacy/i.test(label);
+
     const providesPrivate = aliceTopics.some(
-      (t) => t.relation === "PROVIDES" || t.relation === "WORKS_ON",
+      (t) => providerRelations.has(t.relation) && privateTopic(t.topic),
     );
     const needsPrivate = bobTopics.some(
-      (t) => t.relation === "HAS_PROBLEM" || t.relation === "NEEDS",
+      (t) => needRelations.has(t.relation) && privateTopic(t.topic),
     );
 
     if (providesPrivate && needsPrivate) {
@@ -84,17 +94,27 @@ export function discoverSideQuests(
 Alice, you mentioned building inference that runs inside a customer's VPC with no data leaving their environment. Bob, you shared that your hospital can't send patient data off-prem and needs private AI.
 
 You seem to be solving each other's problem. Worth a 10-minute chat at Hack Day?`,
-        highlightPath: buildHighlightPath(graph, ["Alice", "Bob"], [
-          "Private VPC Inference",
-          "Private PHI Processing",
-        ]),
+        highlightPath: buildHighlightPath(
+          graph,
+          ["Alice", "Bob"],
+          [
+            aliceTopics.find((t) => privateTopic(t.topic))?.topic ??
+              "Private VPC Inference",
+            bobTopics.find((t) => privateTopic(t.topic))?.topic ??
+              "Private PHI Processing",
+          ],
+        ),
       });
     }
   }
 
   if (charlie && (alice || bob)) {
     const charlieTopics = personTopics.get("Charlie") ?? [];
-    const seeksHealthcare = charlieTopics.some((t) => t.relation === "SEEKS");
+    const seeksHealthcare = charlieTopics.some(
+      (t) =>
+        t.relation === "SEEKS" &&
+        /healthcare|medical|hospital|accelerator/i.test(t.topic),
+    );
     if (seeksHealthcare) {
       sideQuests.push({
         id: "sq-charlie-bonus",
