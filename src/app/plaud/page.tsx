@@ -3,6 +3,10 @@ import { AppHeader } from "@/components/app-header";
 import { AppNav } from "@/components/app-nav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getAppState } from "@/lib/demo-state";
+import {
+  getAutoSyncStatus,
+  startPlaudAutoSync,
+} from "@/lib/plaud-auto-sync";
 import { plaudAuthStatus } from "@/lib/plaud-cli";
 import Link from "next/link";
 
@@ -11,6 +15,9 @@ export const dynamic = "force-dynamic";
 export default async function PlaudPage() {
   const state = await getAppState();
   const auth = await plaudAuthStatus();
+  // Ensure auto-sync is running even if instrumentation hasn't fired yet in dev.
+  startPlaudAutoSync();
+  const autoSync = getAutoSyncStatus();
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6">
@@ -41,10 +48,50 @@ export default async function PlaudPage() {
               : "Plaud CLI: not signed in — run login first (below)"}
           </p>
 
+          <div className="rounded-lg border border-border bg-muted/20 p-3 text-muted-foreground">
+            <p className="font-medium text-foreground">Auto-sync</p>
+            <p>
+              Checks Plaud about every{" "}
+              <strong className="text-foreground">
+                {autoSync.intervalMinutes} minutes
+              </strong>{" "}
+              and imports new short recordings automatically.
+            </p>
+            {autoSync.lastRunAt && (
+              <p className="mt-1 text-xs">
+                Last check: {autoSync.lastRunAt}
+                {autoSync.lastResultSummary
+                  ? ` · ${autoSync.lastResultSummary}`
+                  : ""}
+              </p>
+            )}
+          </div>
+
+          <div className="rounded-lg border border-border bg-muted/20 p-3 text-muted-foreground">
+            <p className="font-medium text-foreground">How long should test recordings be?</p>
+            <ul className="mt-1 list-disc space-y-1 pl-5">
+              <li>
+                <strong className="text-foreground">Quick test:</strong> 15–45 seconds is enough
+              </li>
+              <li>
+                <strong className="text-foreground">Demo / booth chat:</strong> 1–3 minutes
+              </li>
+              <li>
+                Auto-sync imports recordings up to ~20 minutes (skips long sample files)
+              </li>
+              <li>
+                Wait until the Plaud App shows a finished <strong className="text-foreground">transcript</strong> before expecting SideQuest to pick it up
+              </li>
+            </ul>
+          </div>
+
           <ol className="list-decimal space-y-1 pl-5 text-muted-foreground">
             <li>Pair demo device in the official Plaud App (same account as CLI).</li>
-            <li>Record a short conversation → stop → wait for sync/transcript.</li>
-            <li>Press <strong className="text-foreground">Sync Plaud</strong>.</li>
+            <li>Record a short conversation → stop → wait for sync/transcript in Plaud App.</li>
+            <li>
+              Press <strong className="text-foreground">Sync Plaud</strong> for an immediate
+              pull, or wait for the next auto-check.
+            </li>
             <li>SideQuest detects new IDs, pulls transcripts, runs the pipeline.</li>
           </ol>
 
