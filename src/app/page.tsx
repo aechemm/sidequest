@@ -13,6 +13,7 @@ export const dynamic = "force-dynamic";
 export default async function HomePage() {
   const state = await getAppState();
   const featured = state.sideQuests[0] ?? null;
+  const moreQuests = state.sideQuests.slice(1);
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6">
@@ -21,7 +22,35 @@ export default async function HomePage() {
 
       <div className="space-y-6">
         {featured ? (
-          <SideQuestCard sideQuest={featured} featured highlighted />
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-end justify-between gap-2">
+              <div>
+                <h2 className="text-lg font-semibold">
+                  Introductions ({state.sideQuests.length})
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Suggested people to connect from your recent conversations.
+                </p>
+              </div>
+              <Link
+                href="/sidequests"
+                className="text-sm text-amber-500 underline"
+              >
+                Open SideQuests
+              </Link>
+            </div>
+            <SideQuestCard sideQuest={featured} featured highlighted />
+            {moreQuests.length > 0 && (
+              <div className="space-y-3">
+                <p className="text-sm font-medium text-muted-foreground">
+                  {moreQuests.length} more
+                </p>
+                {moreQuests.map((sq) => (
+                  <SideQuestCard key={sq.id} sideQuest={sq} />
+                ))}
+              </div>
+            )}
+          </div>
         ) : (
           <Card className="border-dashed">
             <CardContent className="flex flex-col items-center gap-4 py-14 text-center">

@@ -28,9 +28,13 @@ export function AgentActivityPanel({ events }: AgentActivityPanelProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Recent activity</CardTitle>
+        <CardTitle className="text-base">Processing log</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
+        <p className="text-xs text-muted-foreground">
+          Status notes from extract / graph / verify — not the introductions
+          themselves. Open SideQuests to browse matches.
+        </p>
         {events.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             Activity shows up after you sync or add a conversation.
