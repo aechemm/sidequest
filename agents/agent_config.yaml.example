@@ -1,0 +1,11 @@
+extractor:
+  agent_id: "your-extractor-uuid"
+  api_key: "your-extractor-band-api-key"
+
+graph_builder:
+  agent_id: "your-graphbuilder-uuid"
+  api_key: "your-graphbuilder-band-api-key"
+
+critic:
+  agent_id: "your-critic-uuid"
+  api_key: "your-critic-band-api-key"
