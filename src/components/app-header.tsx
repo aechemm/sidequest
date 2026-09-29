@@ -1,3 +1,4 @@
+import { runSyncPlaudAction } from "@/app/actions/sync-plaud";
 import Link from "next/link";
 
 interface AppHeaderProps {
@@ -38,12 +39,14 @@ export function AppHeader({ services }: AppHeaderProps) {
         >
           Add conversation
         </Link>
-        <Link
-          href="/plaud"
-          className="inline-flex h-7 items-center rounded-lg bg-primary px-2.5 text-sm text-primary-foreground hover:bg-primary/80"
-        >
-          Sync Plaud
-        </Link>
+        <form action={runSyncPlaudAction}>
+          <button
+            type="submit"
+            className="inline-flex h-7 items-center rounded-lg bg-primary px-2.5 text-sm text-primary-foreground hover:bg-primary/80"
+          >
+            Sync Plaud
+          </button>
+        </form>
       </div>
     </header>
   );

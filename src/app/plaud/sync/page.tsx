@@ -3,6 +3,8 @@ import { AppNav } from "@/components/app-nav";
 import { SideQuestCard } from "@/components/sidequest-card";
 import { getAppState } from "@/lib/demo-state";
 import type { SyncEvent, SyncResult } from "@/lib/plaud-sync";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +17,7 @@ interface SyncPageProps {
     quests?: string;
     error?: string;
     auth?: string;
+    from?: string;
   }>;
 }
 
@@ -30,6 +33,18 @@ const STAGE_LABEL: Record<string, string> = {
   error: "⚠ Issue",
   idle: "…",
 };
+
+async function loadLastSync(): Promise<SyncResult | null> {
+  try {
+    const raw = await readFile(
+      path.join(process.cwd(), "data", "last-sync.json"),
+      "utf-8",
+    );
+    return JSON.parse(raw) as SyncResult;
+  } catch {
+    return null;
+  }
+}
 
 function decodeResult(data?: string): SyncResult | null {
   if (!data) return null;
@@ -47,10 +62,11 @@ export default async function PlaudSyncResultPage({
 }: SyncPageProps) {
   const state = await getAppState();
   const params = await searchParams;
-  const result = decodeResult(params.data);
+  const result =
+    decodeResult(params.data) ??
+    (params.from === "file" || params.ok ? await loadLastSync() : null);
 
   const events: SyncEvent[] = result?.events ?? [];
-  const sideQuests = result?.sideQuests ?? state.sideQuests;
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6">
@@ -73,12 +89,9 @@ export default async function PlaudSyncResultPage({
           {params.error && (
             <p className="mt-2 text-red-400">{decodeURIComponent(params.error)}</p>
           )}
-          {params.auth === "0" && (
-            <p className="mt-2 text-amber-500">
-              Run in Desktop terminal:{" "}
-              <code className="font-mono">npx plaud login</code>
-            </p>
-          )}
+          <p className="mt-2 text-muted-foreground">
+            No detailed sync log found — run Sync Plaud again from /plaud.
+          </p>
         </div>
       )}
 
@@ -95,6 +108,16 @@ export default async function PlaudSyncResultPage({
               New: {result.processed.length} · Skipped: {result.skipped.length} ·
               SideQuests: {result.sideQuests.length}
             </p>
+            {result.processed.length > 0 && (
+              <ul className="mt-2 list-disc pl-5 text-sm text-muted-foreground">
+                {result.processed.map((p) => (
+                  <li key={p.id}>
+                    {p.name}{" "}
+                    <span className="font-mono text-xs">({p.id.slice(0, 12)}…)</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           <ol className="space-y-2">
@@ -124,8 +147,14 @@ export default async function PlaudSyncResultPage({
 
       <div className="flex flex-wrap gap-3">
         <Link
-          href="/plaud"
+          href="/conversations"
           className="inline-flex h-9 items-center rounded-lg bg-primary px-4 text-sm text-primary-foreground"
+        >
+          View conversations
+        </Link>
+        <Link
+          href="/plaud"
+          className="inline-flex h-9 items-center rounded-lg border px-4 text-sm hover:bg-muted"
         >
           Sync again
         </Link>

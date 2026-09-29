@@ -48,6 +48,22 @@ export interface SyncResult {
   error?: string;
 }
 
+/** Parse CLI duration strings like "7s", "12s", "4m13s", "1h21m" → seconds */
+export function durationToSeconds(duration?: string): number {
+  if (!duration) return 0;
+  const h = duration.match(/(\d+)\s*h/i);
+  const m = duration.match(/(\d+)\s*m/i);
+  const s = duration.match(/(\d+)\s*s/i);
+  return (
+    (h ? Number(h[1]) * 3600 : 0) +
+    (m ? Number(m[1]) * 60 : 0) +
+    (s ? Number(s[1]) : 0)
+  );
+}
+
+const MAX_DURATION_SECONDS = 20 * 60; // skip long sample files (e.g. 1h21m)
+const MAX_PER_SYNC = 5;
+
 function transcriptToConversation(
   recording: PlaudRecording,
   transcript: string,
@@ -160,7 +176,34 @@ export async function syncPlaudAccount(): Promise<SyncResult> {
   }
 
   const already = await loadProcessedPlaudIds();
-  const fresh = recordings.filter((r) => !already.has(r.id));
+  const unprocessed = recordings.filter((r) => !already.has(r.id));
+
+  // Newest first (CLI already returns newest-first); skip long samples that timeout sync.
+  const eligible = unprocessed.filter((r) => {
+    const seconds = durationToSeconds(r.duration);
+    if (seconds > MAX_DURATION_SECONDS) {
+      skipped.push(r.id);
+      events.push({
+        stage: "listing",
+        message: `Skipping long recording (${r.duration}): ${r.name}`,
+        recordingId: r.id,
+        recordingName: r.name,
+      });
+      return false;
+    }
+    return true;
+  });
+
+  const fresh = eligible.slice(0, MAX_PER_SYNC);
+  for (const r of eligible.slice(MAX_PER_SYNC)) {
+    skipped.push(r.id);
+  }
+  if (eligible.length > MAX_PER_SYNC) {
+    events.push({
+      stage: "listing",
+      message: `Processing ${MAX_PER_SYNC} newest short recordings this sync (${eligible.length - MAX_PER_SYNC} left for next sync).`,
+    });
+  }
 
   if (fresh.length === 0) {
     events.push({
@@ -168,7 +211,9 @@ export async function syncPlaudAccount(): Promise<SyncResult> {
       message:
         recordings.length === 0
           ? "No Plaud recordings found for today/recent. Record on the device, sync in the Plaud App, then Sync again."
-          : `Found ${recordings.length} recording(s) — all already processed.`,
+          : unprocessed.length === 0
+            ? `Found ${recordings.length} recording(s) — all already processed.`
+            : `Found ${recordings.length} recording(s), but none were short enough to sync automatically (skipped long samples).`,
     });
     return {
       ok: true,
@@ -177,10 +222,16 @@ export async function syncPlaudAccount(): Promise<SyncResult> {
       events,
       newRecordings: [],
       processed: [],
-      skipped: recordings.map((r) => r.id),
+      skipped:
+        skipped.length > 0 ? skipped : recordings.map((r) => r.id),
       sideQuests: [],
     };
   }
+
+  events.push({
+    stage: "listing",
+    message: `Found ${recordings.length} today · syncing ${fresh.length} new short recording(s)…`,
+  });
 
   const conversations: Conversation[] = [];
 
