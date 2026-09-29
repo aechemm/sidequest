@@ -38,21 +38,58 @@ const EMPTY_STATS: NetworkStats = {
   connectionsDiscovered: 0,
 };
 
-export function SideQuestShell() {
+export interface SideQuestInitialState {
+  conversations: Conversation[];
+  sideQuests: SideQuest[];
+  graph: GraphData;
+  activities: AgentActivityEvent[];
+  stats: NetworkStats;
+  status: PipelineStatus;
+  services: Record<string, boolean>;
+  bandRoomUrl: string | null;
+}
+
+interface SideQuestShellProps {
+  initial?: SideQuestInitialState;
+}
+
+export function SideQuestShell({ initial }: SideQuestShellProps) {
   const [tab, setTab] = useState("dashboard");
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [selectedConv, setSelectedConv] = useState<Conversation | null>(null);
-  const [graph, setGraph] = useState<GraphData>({ nodes: [], links: [] });
-  const [highlightGraph, setHighlightGraph] = useState<GraphData | null>(null);
+  const [conversations, setConversations] = useState<Conversation[]>(
+    initial?.conversations ?? [],
+  );
+  const [selectedConv, setSelectedConv] = useState<Conversation | null>(
+    initial?.conversations[0] ?? null,
+  );
+  const [graph, setGraph] = useState<GraphData>(
+    initial?.graph ?? { nodes: [], links: [] },
+  );
+  const [highlightGraph, setHighlightGraph] = useState<GraphData | null>(
+    initial?.sideQuests[0]?.highlightPath ?? null,
+  );
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
-  const [sideQuests, setSideQuests] = useState<SideQuest[]>([]);
-  const [activeQuestId, setActiveQuestId] = useState<string | null>(null);
-  const [status, setStatus] = useState<PipelineStatus | null>(null);
-  const [activities, setActivities] = useState<AgentActivityEvent[]>([]);
-  const [stats, setStats] = useState<NetworkStats>(EMPTY_STATS);
+  const [sideQuests, setSideQuests] = useState<SideQuest[]>(
+    initial?.sideQuests ?? [],
+  );
+  const [activeQuestId, setActiveQuestId] = useState<string | null>(
+    initial?.sideQuests[0]?.id ?? null,
+  );
+  const [status, setStatus] = useState<PipelineStatus | null>(
+    initial?.status ?? null,
+  );
+  const [activities, setActivities] = useState<AgentActivityEvent[]>(
+    initial?.activities ?? [],
+  );
+  const [stats, setStats] = useState<NetworkStats>(
+    initial?.stats ?? EMPTY_STATS,
+  );
   const [loading, setLoading] = useState(false);
-  const [services, setServices] = useState<Record<string, boolean>>({});
-  const [bandRoomUrl, setBandRoomUrl] = useState<string | null>(null);
+  const [services, setServices] = useState<Record<string, boolean>>(
+    initial?.services ?? {},
+  );
+  const [bandRoomUrl, setBandRoomUrl] = useState<string | null>(
+    initial?.bandRoomUrl ?? null,
+  );
   const [bandKickoffStatus, setBandKickoffStatus] = useState<string | null>(
     null,
   );
@@ -64,6 +101,7 @@ export function SideQuestShell() {
   }, []);
 
   useEffect(() => {
+    if (initial) return;
     void fetch("/api/health")
       .then((r) => r.json())
       .then(
@@ -76,7 +114,7 @@ export function SideQuestShell() {
         },
       );
     void refreshGraph();
-  }, [refreshGraph]);
+  }, [initial, refreshGraph]);
 
   const applyDiscovery = (data: {
     sideQuests: SideQuest[];
@@ -258,10 +296,21 @@ export function SideQuestShell() {
               {name}: {ok ? "live" : "mock"}
             </Badge>
           ))}
-          <Button size="sm" disabled={loading} onClick={() => void runDemo()}>
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => void runDemo()}
+            className="inline-flex h-7 items-center gap-1 rounded-lg bg-primary px-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/80 disabled:opacity-50"
+          >
             <Zap className="size-4" />
             {loading ? "Running…" : "Demo Data"}
-          </Button>
+          </button>
+          <a
+            href="/"
+            className="inline-flex h-7 items-center rounded-lg border border-border px-2.5 text-sm hover:bg-muted"
+          >
+            Reload demo
+          </a>
         </div>
         {demoError && (
           <p className="text-sm text-red-500">
@@ -309,9 +358,14 @@ export function SideQuestShell() {
                 <p className="text-muted-foreground">
                   No SideQuest yet — run Demo Data or add 3 conversations.
                 </p>
-                <Button onClick={() => void runDemo()} disabled={loading}>
+                <button
+                  type="button"
+                  onClick={() => void runDemo()}
+                  disabled={loading}
+                  className="inline-flex h-9 items-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/80 disabled:opacity-50"
+                >
                   Run Demo Data
-                </Button>
+                </button>
               </CardContent>
             </Card>
           )}
