@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# Plaud CLI OAuth must NOT use the Embedded/Transcription PLAUD_CLIENT_ID.
-# That partner client_id causes "Request failed with status code 404" after Google login.
+# Reliable Plaud OAuth for cloud Desktop:
+# - correct CLI client id (not Embedded PLAUD_CLIENT_ID)
+# - keeps localhost:8199 listening
+# - if browser shows connection refused, paste callback URL at /plaud/finish-login
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -9,7 +11,5 @@ unset PLAUD_CLIENT_ID
 unset PLAUD_API_KEY
 unset PLAUD_CLIENT_SECRET
 
-echo "Using Plaud CLI OAuth client: $PLAUD_CLI_CLIENT_ID"
-echo "(Embedded Transcription API keys intentionally unset for login)"
-echo
-exec npx plaud login
+echo "Starting reliable Plaud OAuth listener..."
+exec node scripts/plaud-oauth-server.mjs

@@ -75,13 +75,20 @@ export default async function PlaudPage() {
 npm run plaud:login`}
                 </pre>
                 <p>
-                  When the browser opens, finish Google/Plaud login. If you see a 404, you used
-                  the wrong command earlier — use <code className="font-mono">npm run plaud:login</code>{" "}
-                  only.
+                  Terminal will print an authorize URL and say the listener is READY. Open that
+                  URL in the <strong className="text-foreground">Desktop browser</strong>, then
+                  click Authorize.
                 </p>
                 <p>
-                  Then run <code className="font-mono">npm run plaud:me</code>. If it shows your
-                  name, come back here and press <strong className="text-foreground">Sync Plaud</strong>.
+                  If you see <strong className="text-foreground">localhost refused to connect</strong>:
+                  copy the full address bar URL and paste it at{" "}
+                  <a href="/plaud/finish-login" className="text-amber-500 underline">
+                    /plaud/finish-login
+                  </a>
+                  .
+                </p>
+                <p>
+                  When login succeeds, press <strong className="text-foreground">Sync Plaud</strong>.
                 </p>
               </div>
             </div>
