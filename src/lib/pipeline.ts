@@ -147,3 +147,57 @@ export async function runDiscovery(
     stats: computeStats(conversations, graph, sideQuests),
   };
 }
+
+/** Instant deterministic demo — no Crusoe/Neo4j calls (reliable on local laptops). */
+export async function runDemoMock(conversations: Conversation[]): Promise<{
+  sideQuests: SideQuest[];
+  status: PipelineStatus;
+  graph: GraphData;
+  activities: AgentActivityEvent[];
+  stats: NetworkStats;
+}> {
+  const activities: AgentActivityEvent[] = [];
+
+  for (const conv of conversations) {
+    activities.push(
+      agentEvent("ExtractorAgent", `Processing ${conv.title}…`, "info"),
+    );
+    activities.push(...extractionEvents(1, 1));
+    activities.push(...graphEvents());
+  }
+
+  activities.push(...scoutEvents());
+
+  const graph = getMockGraph();
+  const sideQuests = discoverSideQuests(conversations, graph);
+
+  for (const sq of sideQuests) {
+    activities.push(...connectorEvents(sq.title));
+    activities.push(
+      ...criticEvents(
+        true,
+        "Demo mode — Alice/Bob connection supported by sample conversations.",
+      ),
+    );
+    sq.approved = true;
+    sq.criticReason =
+      "Demo mode — Alice/Bob connection supported by sample conversations.";
+  }
+
+  const status: PipelineStatus = {
+    stage: "complete",
+    message:
+      sideQuests.length > 0
+        ? `SideQuest discovered — ${sideQuests.length} connection${sideQuests.length > 1 ? "s" : ""} across ${conversations.length} conversations.`
+        : "No cross-conversation connections yet — ingest more conversations.",
+    sideQuestsFound: sideQuests.length,
+  };
+
+  return {
+    sideQuests,
+    status,
+    graph,
+    activities,
+    stats: computeStats(conversations, graph, sideQuests),
+  };
+}

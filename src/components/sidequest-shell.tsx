@@ -56,6 +56,7 @@ export function SideQuestShell() {
   const [bandKickoffStatus, setBandKickoffStatus] = useState<string | null>(
     null,
   );
+  const [demoError, setDemoError] = useState<string | null>(null);
 
   const refreshGraph = useCallback(async () => {
     const response = await fetch("/api/graph");
@@ -100,27 +101,51 @@ export function SideQuestShell() {
 
   const runDemo = async () => {
     setLoading(true);
+    setDemoError(null);
     setActivities([]);
     setStatus({ stage: "extracting", message: "Loading demo conversations…" });
 
-    const loadRes = await fetch("/api/transcribe", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ useDemo: true }),
-    });
-    const { conversations: demoConvs } = (await loadRes.json()) as {
-      conversations: Conversation[];
-    };
-    setConversations(demoConvs);
-    setSelectedConv(demoConvs[0] ?? null);
+    try {
+      const loadRes = await fetch("/api/transcribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ useDemo: true }),
+      });
+      if (!loadRes.ok) {
+        throw new Error(`Transcribe API failed (${loadRes.status})`);
+      }
+      const loadData = (await loadRes.json()) as {
+        conversations?: Conversation[];
+        error?: string;
+      };
+      if (!loadData.conversations?.length) {
+        throw new Error(loadData.error ?? "Demo conversations missing");
+      }
+      setConversations(loadData.conversations);
+      setSelectedConv(loadData.conversations[0] ?? null);
 
-    const res = await fetch("/api/pipeline", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "demo" }),
-    });
-    applyDiscovery((await res.json()) as Parameters<typeof applyDiscovery>[0]);
-    setLoading(false);
+      setStatus({ stage: "discovering", message: "Running SideQuest demo…" });
+
+      const res = await fetch("/api/pipeline", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "demo", useMock: true }),
+      });
+      const data = (await res.json()) as Parameters<typeof applyDiscovery>[0] & {
+        error?: string;
+      };
+      if (!res.ok) {
+        throw new Error(data.error ?? `Pipeline failed (${res.status})`);
+      }
+      applyDiscovery(data);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Demo failed — check terminal";
+      setDemoError(message);
+      setStatus({ stage: "error", message });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const ingestOne = async (conversation: Conversation) => {
@@ -235,9 +260,15 @@ export function SideQuestShell() {
           ))}
           <Button size="sm" disabled={loading} onClick={() => void runDemo()}>
             <Zap className="size-4" />
-            Demo Data
+            {loading ? "Running…" : "Demo Data"}
           </Button>
         </div>
+        {demoError && (
+          <p className="text-sm text-red-500">
+            Demo error: {demoError}. Check the terminal where npm run dev is
+            running, or pull the latest code in GitHub Desktop.
+          </p>
+        )}
       </header>
 
       <Tabs value={tab} onValueChange={setTab}>

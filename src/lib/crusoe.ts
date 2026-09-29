@@ -26,6 +26,17 @@ export async function extractEntities(
   const client = getCrusoeClient();
   if (!client) return extractEntitiesMock(conversation);
 
+  try {
+    return await extractEntitiesLive(conversation, client);
+  } catch {
+    return extractEntitiesMock(conversation);
+  }
+}
+
+async function extractEntitiesLive(
+  conversation: Conversation,
+  client: OpenAI,
+): Promise<ExtractedEntity[]> {
   const segmentHints = conversation.segments
     .map(
       (s) =>
@@ -115,6 +126,18 @@ export async function critiqueSideQuest(
   const client = getCrusoeClient();
   if (!client) return critiqueSideQuestMock(sideQuest, conversations);
 
+  try {
+    return await critiqueSideQuestLive(sideQuest, conversations, client);
+  } catch {
+    return critiqueSideQuestMock(sideQuest, conversations);
+  }
+}
+
+async function critiqueSideQuestLive(
+  sideQuest: SideQuest,
+  conversations: Conversation[],
+  client: OpenAI,
+): Promise<{ approved: boolean; reason: string }> {
   const response = await client.chat.completions.create({
     model: CRUSOE_MODEL,
     temperature: 0,

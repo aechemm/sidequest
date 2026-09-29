@@ -1,4 +1,8 @@
-import { ingestConversation, runDiscovery } from "@/lib/pipeline";
+import {
+  ingestConversation,
+  runDemoMock,
+  runDiscovery,
+} from "@/lib/pipeline";
 import { DEMO_CONVERSATIONS } from "@/lib/sample-conversations";
 import type { AgentActivityEvent, Conversation } from "@/lib/types";
 
@@ -8,6 +12,7 @@ export async function POST(request: Request) {
       conversation?: Conversation;
       conversations?: Conversation[];
       action?: "ingest" | "discover" | "demo";
+      useMock?: boolean;
     };
 
     if (body.action === "discover" || body.action === "demo") {
@@ -20,6 +25,11 @@ export async function POST(request: Request) {
           { error: "conversations required for discovery" },
           { status: 400 },
         );
+      }
+
+      if (body.action === "demo" && body.useMock !== false) {
+        const result = await runDemoMock(conversations);
+        return Response.json(result);
       }
 
       const allActivities: AgentActivityEvent[] = [];
